@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/shaders">
+        <file>grass.vert</file>
+        <file>grass.frag</file>
+    </qresource>
+</RCC>
