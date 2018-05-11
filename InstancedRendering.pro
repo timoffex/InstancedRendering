@@ -33,4 +33,5 @@ HEADERS += \
 DISTFILES +=
 
 RESOURCES += \
-    shaders.qrc
+    shaders.qrc \
+    assets.qrc

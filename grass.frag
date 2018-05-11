@@ -1,8 +1,12 @@
 #version 330 core
 
+uniform sampler2D uGrassTexture;
+
+in vec2 fTexCoord;
+
 out vec4 fColor;
 
 void main(void)
 {
-    fColor = vec4(0, 1, 0, 1);
+    fColor = texture(uGrassTexture, fTexCoord);
 }

@@ -1,5 +1,7 @@
 #include "mainwindow.h"
 
+// For rand()
+#include <cstdlib>
 
 MainWindow::MainWindow(QWindow *parent)
     : QOpenGLWindow(NoPartialUpdate, parent)
@@ -12,6 +14,9 @@ MainWindow::~MainWindow()
 
     delete mGrassBladeModelBuffer;
     delete mGrassBladeOffsetsInstancedBuffer;
+
+    // TODO: This, and probably the above deletes, must happen with a current context.
+//    delete mGrassTexture;
 }
 
 static void ERROR(const char *msg)
@@ -24,6 +29,9 @@ void MainWindow::initializeGL()
 {
     initializeOpenGLFunctions();
 
+    // TODO enable face culling
+    glEnable(GL_DEPTH_TEST);
+
     mGrassProgram = new QOpenGLShaderProgram(this);
 
     mGrassProgram->addCacheableShaderFromSourceFile(QOpenGLShader::Vertex, ":/shaders/grass.vert");
@@ -33,11 +41,16 @@ void MainWindow::initializeGL()
         ERROR( "Program didn't link!" );
 
     mGrassProgram_vPosition = mGrassProgram->attributeLocation("vPosition");
+    mGrassProgram_vTexCoord = mGrassProgram->attributeLocation("vTexCoord");
     mGrassProgram_vOffset = mGrassProgram->attributeLocation("vOffset");
     mGrassProgram_uMVP = mGrassProgram->uniformLocation("uMVP");
+    mGrassProgram_uGrassTexture = mGrassProgram->uniformLocation("uGrassTexture");
 
     if (mGrassProgram_vPosition == -1)
         ERROR( "Didn't find vPosition." );
+
+    if (mGrassProgram_vOffset == -1)
+        ERROR( "Didn't find vTexCoord." );
 
     if (mGrassProgram_vOffset == -1)
         ERROR( "Didn't find vOffset." );
@@ -45,10 +58,10 @@ void MainWindow::initializeGL()
     if (mGrassProgram_uMVP == -1)
         ERROR( "Didn't find uMVP." );
 
+    if (mGrassProgram_uGrassTexture == -1)
+        ERROR( "Didn't find uGrassTexture." );
 
 
-    /* Second test:
-        Draw two instances of a grass blade. */
 
     createGrassModel();
     createGrassOffsets();
@@ -69,21 +82,29 @@ void MainWindow::paintGL()
 {
     glViewport(0, 0, width(), height());
 
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     QMatrix4x4 matrix;
     matrix.perspective(90, (float) width() / height(), 0.1, 100);
     matrix.translate(0, 0, -6);
     matrix.rotate(30, 1, 0);
+    matrix.rotate(mRotation, 0, 1);
+    mRotation += 1;
 
     if (!mGrassProgram->bind())
         ERROR( "Failed to bind program in paint call." );
 
     mGrassProgram->setUniformValue(mGrassProgram_uMVP, matrix);
+    mGrassProgram->setUniformValue(mGrassProgram_uGrassTexture, 0); // uses texture in texture unit 0
+
+    glActiveTexture(GL_TEXTURE0);
+    mGrassTexture->bind(); // binds to texture unit 0
 
     mGrassVAO->bind();
-    glDrawArraysInstanced(GL_TRIANGLES, 0, 3, mNumBlades);
+    glDrawArraysInstanced(GL_TRIANGLES, 0, mNumVerticesPerBlade, mNumBlades);
     mGrassVAO->release();
+
+    mGrassTexture->release();
 
     mGrassProgram->release();
 
@@ -122,11 +143,16 @@ bool MainWindow::checkGLErrors()
 
 void MainWindow::createGrassModel()
 {
-    int grassDataLength = 9;
+    mNumVerticesPerBlade = 6;
+    int grassDataLength = 5 * mNumVerticesPerBlade;
     float grassData[] = {
-         -0.3,  0.0,  0.0,
-          0.3,  0.0,  0.0,
-          0.0,  1.0,  0.0
+         -0.1,  0.0,  0.0,   0.0,  1.0,
+          0.1,  0.0,  0.0,   0.0,  0.0,
+          0.1,  1.0,  0.0,   1.0,  0.0,
+
+         -0.1,  0.0,  0.0,   0.0,  1.0,
+          0.1,  1.0,  0.0,   1.0,  0.0,
+         -0.1,  1.0,  0.0,   1.0,  1.0,
     };
 
     mGrassBladeModelBuffer = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
@@ -138,6 +164,9 @@ void MainWindow::createGrassModel()
 
     mGrassBladeModelBuffer->allocate(grassData, sizeof(float) * grassDataLength);
     mGrassBladeModelBuffer->release();
+
+
+    mGrassTexture = new QOpenGLTexture(QImage(":/images/grass_blade.jpg"));
 }
 
 
@@ -157,9 +186,13 @@ void MainWindow::createGrassOffsets()
         {
             int index = y + x * bladesY;
 
-            offsets[3*index + 0] = x - bladesX / 2;
+            float xPos = (((float) rand() / RAND_MAX) - 0.5) * bladesX;
+            float yPos = (((float) rand() / RAND_MAX) - 0.5) * bladesY;
+
+            offsets[3*index + 0] = xPos;
             offsets[3*index + 1] = 0;
-            offsets[3*index + 2] = y - bladesY / 2;
+            offsets[3*index + 2] = yPos;
+
         }
     }
 
@@ -187,10 +220,12 @@ void MainWindow::createGrassVAO()
     mGrassVAO->bind();
 
     mGrassProgram->enableAttributeArray(mGrassProgram_vPosition);
+    mGrassProgram->enableAttributeArray(mGrassProgram_vTexCoord);
     mGrassProgram->enableAttributeArray(mGrassProgram_vOffset);
 
     mGrassBladeModelBuffer->bind();
-    mGrassProgram->setAttributeBuffer(mGrassProgram_vPosition, GL_FLOAT, 0, 3);
+    mGrassProgram->setAttributeBuffer(mGrassProgram_vPosition, GL_FLOAT, 0, 3, 5 * sizeof(float));
+    mGrassProgram->setAttributeBuffer(mGrassProgram_vTexCoord, GL_FLOAT, 3 * sizeof(float), 2, 5 * sizeof(float));
     mGrassBladeModelBuffer->release();
 
     mGrassBladeOffsetsInstancedBuffer->bind();

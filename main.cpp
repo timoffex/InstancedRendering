@@ -4,8 +4,14 @@
 #include <QApplication>
 #include <QSurfaceFormat>
 
+
+#include <cstdlib>
+#include <ctime>
+
 int main(int argc, char *argv[])
 {
+    srand(time(0));
+
     QApplication a(argc, argv);
 
     QSurfaceFormat format;
@@ -13,6 +19,7 @@ int main(int argc, char *argv[])
     format.setMajorVersion(3);
     format.setMinorVersion(3);
     format.setProfile(QSurfaceFormat::CoreProfile);
+    format.setDepthBufferSize(24);
 
     MainWindow w;
     w.setFormat(format);
