@@ -29,6 +29,10 @@ protected:
 
 private:
 
+    void createGrassModel();
+    void createGrassOffsets();
+    void createGrassVAO();
+
     /// Stores the data for a single grass blade.
     QOpenGLBuffer *mGrassBladeModelBuffer;
 
@@ -41,6 +45,7 @@ private:
     /// The shader program that should be used for rendering grass.
     QOpenGLShaderProgram *mGrassProgram;
     int mGrassProgram_vPosition;
+    int mGrassProgram_vOffset;
     int mGrassProgram_uMVP;
 };
 
