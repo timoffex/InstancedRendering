@@ -38,7 +38,7 @@ private:
     QOpenGLBuffer *mGrassBladeModelBuffer;
 
     /// The per-instance data for grass blades.
-    QOpenGLBuffer *mGrassBladeOffsetsInstancedBuffer;
+    QOpenGLBuffer *mGrassBladeInstancedBuffer;
 
     /// The VAO holding all grass data.
     QOpenGLVertexArrayObject *mGrassVAO;
@@ -52,6 +52,7 @@ private:
     int mGrassProgram_vPosition;
     int mGrassProgram_vTexCoord;
     int mGrassProgram_vOffset;
+    int mGrassProgram_vRotation;
     int mGrassProgram_uMVP;
     int mGrassProgram_uGrassTexture;
 
