@@ -13,6 +13,8 @@
 #include <QMouseEvent>
 #include <QPoint>
 
+#include <QTime>
+
 class MainWindow : public QOpenGLWindow, QOpenGLExtraFunctions
 {
     Q_OBJECT
@@ -37,7 +39,8 @@ protected:
 
 private:
 
-    void createGrassModel();
+    void updateGrassModel(float bendAngle);
+    void createGrassModel(float bendAngle);
     void createGrassOffsets();
     void createGrassVAO();
 
@@ -74,6 +77,10 @@ private:
     QPoint mDragStart;
     float mDragRotationStart;
     bool mDragging = false;
+
+    /// Bend angle for the grass.
+    float mGrassBend;
+    QTime mStartTime;
 };
 
 #endif // MAINWINDOW_H

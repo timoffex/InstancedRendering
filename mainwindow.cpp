@@ -45,6 +45,7 @@ void MainWindow::initializeGL()
 {
     initializeOpenGLFunctions();
 
+
     glEnable(GL_DEPTH_TEST);
 
     mGrassProgram = new QOpenGLShaderProgram(this);
@@ -69,7 +70,8 @@ void MainWindow::initializeGL()
     ERROR_IF_NEG1(mGrassProgram_uGrassTexture, "Didn't find uGrassTexture.");
 
 
-    createGrassModel();
+    mGrassBend = 45;
+    createGrassModel(mGrassBend);
     createGrassOffsets();
     createGrassVAO();
 
@@ -86,6 +88,10 @@ void MainWindow::resizeGL(int w, int h)
 
 void MainWindow::paintGL()
 {
+    // Update grass model.
+    mGrassBend = 80 * cos(mStartTime.msecsTo(QTime::currentTime()) / 700.0);
+    updateGrassModel(mGrassBend);
+
     glViewport(0, 0, width(), height());
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -115,6 +121,9 @@ void MainWindow::paintGL()
 
     if (checkGLErrors())
         qDebug() << "^ in paintGL() at end";
+
+    // Schedule another update.
+    update();
 }
 
 
@@ -175,12 +184,25 @@ bool MainWindow::checkGLErrors()
 
 
 
-void MainWindow::createGrassModel()
+void MainWindow::updateGrassModel(float bendAngle)
 {
-    QVector<float> model = Grass::makeGrassModel(15, 0.2, 2, 45);
+    QVector<float> model = Grass::makeGrassModel(15, 0.2, 2, bendAngle);
+    Q_ASSERT( mNumVerticesPerBlade == 15 * 6 );
+
+    // This assumes that the model takes the same amount of space as before.
+    mGrassBladeModelBuffer->bind();
+    mGrassBladeModelBuffer->write(0, model.data(), sizeof(float) * model.size());
+    mGrassBladeModelBuffer->release();
+}
+
+void MainWindow::createGrassModel(float bendAngle)
+{
+    mStartTime = QTime::currentTime();
+    QVector<float> model = Grass::makeGrassModel(15, 0.2, 2, bendAngle);
     mNumVerticesPerBlade = 15 * 6; // num segments * 6 verts per segment
 
     mGrassBladeModelBuffer = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+    mGrassBladeModelBuffer->setUsagePattern(QOpenGLBuffer::StreamDraw);
     ERROR_IF_FALSE(mGrassBladeModelBuffer->create(), "Failed to create model buffer.");
 
     ERROR_IF_FALSE(mGrassBladeModelBuffer->bind(), "Failed to bind model buffer.");

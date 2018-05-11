@@ -20,6 +20,7 @@ int main(int argc, char *argv[])
     format.setMinorVersion(3);
     format.setProfile(QSurfaceFormat::CoreProfile);
     format.setDepthBufferSize(24);
+    format.setSwapInterval(1);
 
     MainWindow w;
     w.setFormat(format);
