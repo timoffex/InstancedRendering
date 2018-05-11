@@ -73,8 +73,8 @@ void MainWindow::paintGL()
 
     QMatrix4x4 matrix;
     matrix.perspective(90, (float) width() / height(), 0.1, 100);
-    matrix.translate(0, 0, -2);
-    matrix.rotate(-30, 1, 0);
+    matrix.translate(0, 0, -6);
+    matrix.rotate(30, 1, 0);
 
     if (!mGrassProgram->bind())
         ERROR( "Failed to bind program in paint call." );
@@ -82,7 +82,7 @@ void MainWindow::paintGL()
     mGrassProgram->setUniformValue(mGrassProgram_uMVP, matrix);
 
     mGrassVAO->bind();
-    glDrawArraysInstanced(GL_TRIANGLES, 0, 3, 2);
+    glDrawArraysInstanced(GL_TRIANGLES, 0, 3, mNumBlades);
     mGrassVAO->release();
 
     mGrassProgram->release();
@@ -124,9 +124,9 @@ void MainWindow::createGrassModel()
 {
     int grassDataLength = 9;
     float grassData[] = {
-         0.0,  0.0,  0.0,
-         0.0,  1.0,  0.0,
-         1.0,  1.0,  0.0
+         -0.3,  0.0,  0.0,
+          0.3,  0.0,  0.0,
+          0.0,  1.0,  0.0
     };
 
     mGrassBladeModelBuffer = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
@@ -143,11 +143,26 @@ void MainWindow::createGrassModel()
 
 void MainWindow::createGrassOffsets()
 {
-    int offsetsLength = 6;
-    float offsets[] = {
-        0, 0, 0,
-        1, 0, 0
-    };
+
+    const int bladesX = 100;
+    const int bladesY = 100;
+
+    mNumBlades = bladesX * bladesY;
+    const int offsetsLength = mNumBlades * 3;
+    float *offsets = new float[offsetsLength];
+
+    for (int x = 0; x < bladesX; ++x)
+    {
+        for (int y = 0; y < bladesY; ++y)
+        {
+            int index = y + x * bladesY;
+
+            offsets[3*index + 0] = x - bladesX / 2;
+            offsets[3*index + 1] = 0;
+            offsets[3*index + 2] = y - bladesY / 2;
+        }
+    }
+
 
 
     mGrassBladeOffsetsInstancedBuffer = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
@@ -160,6 +175,8 @@ void MainWindow::createGrassOffsets()
 
     mGrassBladeOffsetsInstancedBuffer->allocate(offsets, sizeof(float) * offsetsLength);
     mGrassBladeOffsetsInstancedBuffer->release();
+
+    delete [] offsets;
 }
 
 void MainWindow::createGrassVAO()

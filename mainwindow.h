@@ -47,6 +47,9 @@ private:
     int mGrassProgram_vPosition;
     int mGrassProgram_vOffset;
     int mGrassProgram_uMVP;
+
+    /// The number of grass blade instances that should be drawn.
+    int mNumBlades;
 };
 
 #endif // MAINWINDOW_H
