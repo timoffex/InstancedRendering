@@ -122,6 +122,7 @@ QVector<float> Grass::makeGrassModel(int numSegments, float width, float height,
 
         Quad curQuad(initialQuad);
         curQuad.translate(offsetV);
+        curQuad.translateTex(offsetT * segIdx);
 
         curQuad.appendToData(model);
     }
