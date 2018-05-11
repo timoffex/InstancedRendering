@@ -27,6 +27,18 @@ static void ERROR(const char *msg)
     exit(1);
 }
 
+static void ERROR_IF_FALSE(bool cond, const char *msg)
+{
+    if (!cond)
+        ERROR(msg);
+}
+
+static void ERROR_IF_NEG1(int num, const char *msg)
+{
+    if (num == -1)
+        ERROR(msg);
+}
+
 void MainWindow::initializeGL()
 {
     initializeOpenGLFunctions();
@@ -39,8 +51,7 @@ void MainWindow::initializeGL()
     mGrassProgram->addCacheableShaderFromSourceFile(QOpenGLShader::Vertex, ":/shaders/grass.vert");
     mGrassProgram->addCacheableShaderFromSourceFile(QOpenGLShader::Fragment, ":/shaders/grass.frag");
 
-    if (!mGrassProgram->link() || !mGrassProgram->isLinked())
-        ERROR( "Program didn't link!" );
+    ERROR_IF_FALSE(mGrassProgram->link() && mGrassProgram->isLinked(), "Program didn't link!");
 
     mGrassProgram_vPosition = mGrassProgram->attributeLocation("vPosition");
     mGrassProgram_vTexCoord = mGrassProgram->attributeLocation("vTexCoord");
@@ -49,24 +60,12 @@ void MainWindow::initializeGL()
     mGrassProgram_uMVP = mGrassProgram->uniformLocation("uMVP");
     mGrassProgram_uGrassTexture = mGrassProgram->uniformLocation("uGrassTexture");
 
-    if (mGrassProgram_vPosition == -1)
-        ERROR( "Didn't find vPosition." );
-
-    if (mGrassProgram_vTexCoord == -1)
-        ERROR( "Didn't find vTexCoord." );
-
-    if (mGrassProgram_vOffset == -1)
-        ERROR( "Didn't find vOffset." );
-
-    if (mGrassProgram_vRotation == -1)
-        ERROR( "Didn't find vRotation." );
-
-    if (mGrassProgram_uMVP == -1)
-        ERROR( "Didn't find uMVP." );
-
-    if (mGrassProgram_uGrassTexture == -1)
-        ERROR( "Didn't find uGrassTexture." );
-
+    ERROR_IF_NEG1(mGrassProgram_vPosition, "Didn't find vPosition.");
+    ERROR_IF_NEG1(mGrassProgram_vTexCoord, "Didn't find vTexCoord.");
+    ERROR_IF_NEG1(mGrassProgram_vOffset, "Didn't find vOffset.");
+    ERROR_IF_NEG1(mGrassProgram_vRotation, "Didn't find vRotation.");
+    ERROR_IF_NEG1(mGrassProgram_uMVP, "Didn't find uMVP.");
+    ERROR_IF_NEG1(mGrassProgram_uGrassTexture, "Didn't find uGrassTexture.");
 
 
     createGrassModel();
@@ -96,8 +95,7 @@ void MainWindow::paintGL()
     matrix.rotate(30, 1, 0);
     matrix.rotate(mRotation, 0, 1);
 
-    if (!mGrassProgram->bind())
-        ERROR( "Failed to bind program in paint call." );
+    ERROR_IF_FALSE(mGrassProgram->bind(), "Failed to bind program in paint call.");
 
     mGrassProgram->setUniformValue(mGrassProgram_uMVP, matrix);
     mGrassProgram->setUniformValue(mGrassProgram_uGrassTexture, 0); // uses texture in texture unit 0
@@ -199,12 +197,9 @@ void MainWindow::createGrassModel()
     };
 
     mGrassBladeModelBuffer = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-    if (!mGrassBladeModelBuffer->create())
-        ERROR( "Failed to create model buffer." );
+    ERROR_IF_FALSE(mGrassBladeModelBuffer->create(), "Failed to create model buffer.");
 
-    if (!mGrassBladeModelBuffer->bind())
-        ERROR( "Failed to bind model buffer." );
-
+    ERROR_IF_FALSE(mGrassBladeModelBuffer->bind(), "Failed to bind model buffer.");
     mGrassBladeModelBuffer->allocate(grassData, sizeof(float) * grassDataLength);
     mGrassBladeModelBuffer->release();
 
@@ -259,13 +254,9 @@ void MainWindow::createGrassOffsets()
 
 
     mGrassBladeInstancedBuffer = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+    ERROR_IF_FALSE(mGrassBladeInstancedBuffer->create(), "Failed to create offsets buffer.");
 
-    if (!mGrassBladeInstancedBuffer->create())
-        ERROR( "Failed to create offsets buffer." );
-
-    if (!mGrassBladeInstancedBuffer->bind())
-        ERROR( "Failed to bind offsets buffer." );
-
+    ERROR_IF_FALSE(mGrassBladeInstancedBuffer->bind(), "Failed to bind offsets buffer.");
     mGrassBladeInstancedBuffer->allocate(offsets, sizeof(float) * offsetsLength);
     mGrassBladeInstancedBuffer->release();
 
@@ -275,8 +266,7 @@ void MainWindow::createGrassOffsets()
 void MainWindow::createGrassVAO()
 {
     mGrassVAO = new QOpenGLVertexArrayObject(this);
-    if (!mGrassVAO->create())
-        ERROR( "Failed to create VAO." );
+    ERROR_IF_FALSE(mGrassVAO->create(), "Failed to create VAO.");
     mGrassVAO->bind();
 
     mGrassProgram->enableAttributeArray(mGrassProgram_vPosition);
