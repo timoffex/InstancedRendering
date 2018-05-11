@@ -10,6 +10,9 @@
 
 #include <QOpenGLShaderProgram>
 
+#include <QMouseEvent>
+#include <QPoint>
+
 class MainWindow : public QOpenGLWindow, QOpenGLExtraFunctions
 {
     Q_OBJECT
@@ -24,6 +27,10 @@ protected:
     void initializeGL() override;
     void resizeGL(int w, int h) override;
     void paintGL() override;
+
+    void mouseMoveEvent(QMouseEvent *evt) override;
+    void mousePressEvent(QMouseEvent *evt) override;
+    void mouseReleaseEvent(QMouseEvent *evt) override;
 
 
     bool checkGLErrors();
@@ -62,8 +69,11 @@ private:
     /// The number of vertices in the grass blade model.
     int mNumVerticesPerBlade;
 
-
+    /// Variable used for rotating the screen.
     float mRotation = 0;
+    QPoint mDragStart;
+    float mDragRotationStart;
+    bool mDragging = false;
 };
 
 #endif // MAINWINDOW_H

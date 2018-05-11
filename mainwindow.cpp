@@ -92,10 +92,9 @@ void MainWindow::paintGL()
 
     QMatrix4x4 matrix;
     matrix.perspective(90, (float) width() / height(), 0.1, 100);
-    matrix.translate(0, 0, -6);
+    matrix.translate(0, 0, -10);
     matrix.rotate(30, 1, 0);
     matrix.rotate(mRotation, 0, 1);
-    mRotation += 1;
 
     if (!mGrassProgram->bind())
         ERROR( "Failed to bind program in paint call." );
@@ -118,6 +117,36 @@ void MainWindow::paintGL()
     if (checkGLErrors())
         qDebug() << "^ in paintGL() at end";
 }
+
+
+void MainWindow::mouseMoveEvent(QMouseEvent *evt)
+{
+    if (mDragging)
+    {
+        mRotation = mDragRotationStart + (evt->x() - mDragStart.x()) / 5.0;
+        update();
+    }
+}
+
+void MainWindow::mousePressEvent(QMouseEvent *evt)
+{
+    if (evt->button() == Qt::LeftButton)
+    {
+        Q_ASSERT( !mDragging );
+        mDragging = true;
+        mDragStart = evt->pos();
+        mDragRotationStart = mRotation;
+    }
+}
+
+void MainWindow::mouseReleaseEvent(QMouseEvent *evt)
+{
+    if (evt->button() == Qt::LeftButton)
+    {
+        mDragging = false;
+    }
+}
+
 
 
 bool MainWindow::checkGLErrors()
@@ -149,16 +178,24 @@ bool MainWindow::checkGLErrors()
 
 void MainWindow::createGrassModel()
 {
-    mNumVerticesPerBlade = 6;
+    mNumVerticesPerBlade = 12;
     int grassDataLength = 5 * mNumVerticesPerBlade;
     float grassData[] = {
          -0.1,  0.0,  0.0,   0.0,  1.0,
           0.1,  0.0,  0.0,   0.0,  0.0,
-          0.1,  1.0,  0.0,   1.0,  0.0,
+          0.1,  1.0,  0.0,   0.5,  0.0,
 
          -0.1,  0.0,  0.0,   0.0,  1.0,
-          0.1,  1.0,  0.0,   1.0,  0.0,
-         -0.1,  1.0,  0.0,   1.0,  1.0,
+          0.1,  1.0,  0.0,   0.5,  0.0,
+         -0.1,  1.0,  0.0,   0.5,  1.0,
+
+         -0.1,  1.0,  0.0,   0.5,  1.0,
+          0.1,  1.0,  0.0,   0.5,  0.0,
+          0.1,  2.0,  0.0,   1.0,  0.0,
+
+         -0.1,  1.0,  0.0,   0.5,  1.0,
+          0.1,  2.0,  0.0,   1.0,  0.0,
+         -0.1,  2.0,  0.0,   1.0,  1.0,
     };
 
     mGrassBladeModelBuffer = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
