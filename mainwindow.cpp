@@ -1,5 +1,7 @@
 #include "mainwindow.h"
 
+#include "grass.h"
+
 // For rand()
 #include <cstdlib>
 
@@ -43,7 +45,6 @@ void MainWindow::initializeGL()
 {
     initializeOpenGLFunctions();
 
-    // TODO enable face culling
     glEnable(GL_DEPTH_TEST);
 
     mGrassProgram = new QOpenGLShaderProgram(this);
@@ -176,31 +177,14 @@ bool MainWindow::checkGLErrors()
 
 void MainWindow::createGrassModel()
 {
-    mNumVerticesPerBlade = 12;
-    int grassDataLength = 5 * mNumVerticesPerBlade;
-    float grassData[] = {
-         -0.1,  0.0,  0.0,   0.0,  1.0,
-          0.1,  0.0,  0.0,   0.0,  0.0,
-          0.1,  1.0,  0.0,   0.5,  0.0,
-
-         -0.1,  0.0,  0.0,   0.0,  1.0,
-          0.1,  1.0,  0.0,   0.5,  0.0,
-         -0.1,  1.0,  0.0,   0.5,  1.0,
-
-         -0.1,  1.0,  0.0,   0.5,  1.0,
-          0.1,  1.0,  0.0,   0.5,  0.0,
-          0.1,  2.0,  0.0,   1.0,  0.0,
-
-         -0.1,  1.0,  0.0,   0.5,  1.0,
-          0.1,  2.0,  0.0,   1.0,  0.0,
-         -0.1,  2.0,  0.0,   1.0,  1.0,
-    };
+    QVector<float> model = Grass::makeGrassModel(15, 0.2, 2, 45);
+    mNumVerticesPerBlade = 15 * 6; // num segments * 6 verts per segment
 
     mGrassBladeModelBuffer = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
     ERROR_IF_FALSE(mGrassBladeModelBuffer->create(), "Failed to create model buffer.");
 
     ERROR_IF_FALSE(mGrassBladeModelBuffer->bind(), "Failed to bind model buffer.");
-    mGrassBladeModelBuffer->allocate(grassData, sizeof(float) * grassDataLength);
+    mGrassBladeModelBuffer->allocate(model.data(), sizeof(float) * model.size());
     mGrassBladeModelBuffer->release();
 
 
@@ -232,8 +216,7 @@ void MainWindow::createGrassOffsets()
             offsets[12*index + 2] = yPos;
 
 
-            // Due to rotational symmetry, we only need to consider rotations of pi/2 degrees for now.
-            float rotation = ((float) rand() / RAND_MAX) * M_PI_2;
+            float rotation = ((float) rand() / RAND_MAX) * M_PI * 2;
             float c = cos(rotation);
             float s = sin(rotation);
 
