@@ -65,6 +65,7 @@ private:
     int mGrassProgram_vRotation;
     int mGrassProgram_uMVP;
     int mGrassProgram_uGrassTexture;
+    int mGrassProgram_uWindStrength;
 
     /// The number of grass blade instances that should be drawn.
     int mNumBlades;
@@ -81,6 +82,9 @@ private:
     /// Bend angle for the grass.
     float mGrassBend;
     QTime mStartTime;
+
+    /// Wind strength.
+    float mWindStrength;
 };
 
 #endif // MAINWINDOW_H

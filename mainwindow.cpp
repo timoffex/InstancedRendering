@@ -61,6 +61,7 @@ void MainWindow::initializeGL()
     mGrassProgram_vRotation = mGrassProgram->attributeLocation("vRotation");
     mGrassProgram_uMVP = mGrassProgram->uniformLocation("uMVP");
     mGrassProgram_uGrassTexture = mGrassProgram->uniformLocation("uGrassTexture");
+    mGrassProgram_uWindStrength = mGrassProgram->uniformLocation("uWindStrength");
 
     ERROR_IF_NEG1(mGrassProgram_vPosition, "Didn't find vPosition.");
     ERROR_IF_NEG1(mGrassProgram_vTexCoord, "Didn't find vTexCoord.");
@@ -68,6 +69,7 @@ void MainWindow::initializeGL()
     ERROR_IF_NEG1(mGrassProgram_vRotation, "Didn't find vRotation.");
     ERROR_IF_NEG1(mGrassProgram_uMVP, "Didn't find uMVP.");
     ERROR_IF_NEG1(mGrassProgram_uGrassTexture, "Didn't find uGrassTexture.");
+    ERROR_IF_NEG1(mGrassProgram_uWindStrength, "Didn't find uWindStrength.");
 
 
     mGrassBend = 45;
@@ -88,9 +90,13 @@ void MainWindow::resizeGL(int w, int h)
 
 void MainWindow::paintGL()
 {
-    // Update grass model.
-    mGrassBend = 80 * cos(mStartTime.msecsTo(QTime::currentTime()) / 700.0);
-    updateGrassModel(mGrassBend);
+    // Update grass model. (WHEN UNCOMMENTING, REMEMBER TO UNCOMMENT update() AT END).
+//    mGrassBend = 80 * cos(mStartTime.msecsTo(QTime::currentTime()) / 700.0);
+//    updateGrassModel(mGrassBend);
+
+    float cosTime = cos(mStartTime.msecsTo(QTime::currentTime()) / 600.0);
+    float cosSquared = cosTime * cosTime;
+    mWindStrength = 0.25 * cosSquared + 0.2;
 
     glViewport(0, 0, width(), height());
 
@@ -106,6 +112,7 @@ void MainWindow::paintGL()
 
     mGrassProgram->setUniformValue(mGrassProgram_uMVP, matrix);
     mGrassProgram->setUniformValue(mGrassProgram_uGrassTexture, 0); // uses texture in texture unit 0
+    mGrassProgram->setUniformValue(mGrassProgram_uWindStrength, mWindStrength);
 
     glActiveTexture(GL_TEXTURE0);
     mGrassTexture->bind(); // binds to texture unit 0
