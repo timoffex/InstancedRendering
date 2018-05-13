@@ -23,6 +23,7 @@ MainWindow::~MainWindow()
 //    delete mGrassTexture;
 }
 
+
 static void ERROR(const char *msg)
 {
     qDebug() << "ERROR: " << msg;
@@ -32,12 +33,6 @@ static void ERROR(const char *msg)
 static void ERROR_IF_FALSE(bool cond, const char *msg)
 {
     if (!cond)
-        ERROR(msg);
-}
-
-static void ERROR_IF_NEG1(int num, const char *msg)
-{
-    if (num == -1)
         ERROR(msg);
 }
 
@@ -51,57 +46,31 @@ void MainWindow::initializeGL()
 {
     initializeOpenGLFunctions();
 
-
     glEnable(GL_DEPTH_TEST);
 
-    mGrassProgram = new QOpenGLShaderProgram(this);
 
-    mGrassProgram->addCacheableShaderFromSourceFile(QOpenGLShader::Vertex, ":/shaders/grass.vert");
-    mGrassProgram->addCacheableShaderFromSourceFile(QOpenGLShader::Fragment, ":/shaders/grass.frag");
-
-    ERROR_IF_FALSE(mGrassProgram->link() && mGrassProgram->isLinked(), "Program didn't link!");
-
-    mGrassProgram_vPosition = mGrassProgram->attributeLocation("vPosition");
-    mGrassProgram_vTexCoord = mGrassProgram->attributeLocation("vTexCoord");
-    mGrassProgram_vOffset = mGrassProgram->attributeLocation("vOffset");
-    mGrassProgram_vRotation = mGrassProgram->attributeLocation("vRotation");
-    mGrassProgram_vWindPosition = mGrassProgram->attributeLocation("vWindPosition");
-    mGrassProgram_uMVP = mGrassProgram->uniformLocation("uMVP");
-    mGrassProgram_uGrassTexture = mGrassProgram->uniformLocation("uGrassTexture");
-
-    ERROR_IF_NEG1(mGrassProgram_vPosition, "Didn't find vPosition.");
-    ERROR_IF_NEG1(mGrassProgram_vTexCoord, "Didn't find vTexCoord.");
-    ERROR_IF_NEG1(mGrassProgram_vOffset, "Didn't find vOffset.");
-    ERROR_IF_NEG1(mGrassProgram_vRotation, "Didn't find vRotation.");
-    ERROR_IF_NEG1(mGrassProgram_vWindPosition, "Didn't find vWindPosition.");
-    ERROR_IF_NEG1(mGrassProgram_uMVP, "Didn't find uMVP.");
-    ERROR_IF_NEG1(mGrassProgram_uGrassTexture, "Didn't find uGrassTexture.");
+    // Create the OpenGL shader program for rendering grass.
+    ERROR_IF_FALSE(mGrassProgram.create(), "Failed to create grass program.");
 
 
-    // Initialize OpenCL stuff here.
+    // Initialize OpenCL.
     mCLWrapper = new MyCLWrapper();
     ERROR_IF_FALSE(mCLWrapper->create(), "Failed to initialize OpenCL.");
 
+    // Create the OpenCL program for wind effects.
     mWindProgram = new GrassWindCLProgram();
     ERROR_IF_FALSE(mWindProgram->create(mCLWrapper), "Failed to create wind program.");
 
 
-    mGrassBend = 45;
-    createGrassModel(mGrassBend);
-    createGrassOffsets();
+    createGrassModel(45);
+    createGrassInstanceData();
     createGrassVAO();
 
     if (checkGLErrors())
         qDebug() << "^ in initializeGL()";
 
 
-    cl_int err;
-    mGrassWindPositions = clCreateFromGLBuffer(mCLWrapper->context(),
-                                               CL_MEM_READ_WRITE,
-                                               mGrassBladeWindPositionBuffer->bufferId(),
-                                               &err);
-    ERROR_IF_NOT_SUCCESS(err, "Couldn't share grass wind positions buffer.");
-
+    createCLBuffersFromGLBuffers();
 }
 
 void MainWindow::resizeGL(int w, int h)
@@ -113,35 +82,8 @@ void MainWindow::resizeGL(int w, int h)
 
 void MainWindow::paintGL()
 {
-    // Update grass model. (WHEN UNCOMMENTING, REMEMBER TO UNCOMMENT update() AT END).
-//    mGrassBend = 80 * cos(mStartTime.msecsTo(QTime::currentTime()) / 700.0);
-//    updateGrassModel(mGrassBend);
-
-//    float cosTime = cos(mStartTime.msecsTo(QTime::currentTime()) / 600.0);
-//    float cosSquared = cosTime * cosTime;
-//    mWindStrength = 0.25 * cosSquared + 0.2;
-
-    /* Run the wind simulation. */
-
-    cl_int err;
-
-    err = clEnqueueAcquireGLObjects(mCLWrapper->queue(), 1, &mGrassWindPositions, 0, NULL, NULL);
-    ERROR_IF_NOT_SUCCESS(err, "Failed to acquire a GL buffer for OpenCL use.");
-
-
-    ERROR_IF_FALSE(mWindProgram->reactToWind(mGrassWindPositions,
-                                             mGrassWindVelocities,
-                                             mGrassWindStrength, mNumBlades, 0.1),
-                   "Failed to run wind program");
-
-    err = clEnqueueReleaseGLObjects(mCLWrapper->queue(), 1, &mGrassWindPositions, 0, NULL, NULL);
-    ERROR_IF_NOT_SUCCESS(err, "Failed to release GL buffers from OpenCL use.");
-
-    err = clFinish(mCLWrapper->queue());
-    ERROR_IF_NOT_SUCCESS(err, "Failed to finish OpenCL commands.");
-
-    /* End wind simulation. */
-
+    updateWind();
+    updateGrassWindOffsets();
 
     glViewport(0, 0, width(), height());
 
@@ -153,11 +95,10 @@ void MainWindow::paintGL()
     matrix.rotate(30, 1, 0);
     matrix.rotate(mRotation, 0, 1);
 
-    ERROR_IF_FALSE(mGrassProgram->bind(), "Failed to bind program in paint call.");
+    ERROR_IF_FALSE(mGrassProgram.bind(), "Failed to bind program in paint call.");
 
-    mGrassProgram->setUniformValue(mGrassProgram_uMVP, matrix);
-    mGrassProgram->setUniformValue(mGrassProgram_uGrassTexture, 0); // uses texture in texture unit 0
-//    mGrassProgram->setUniformValue(mGrassProgram_uWindStrength, mWindStrength);
+    mGrassProgram.setMVP(matrix);
+    mGrassProgram.setGrassTextureUnit(0);
 
     glActiveTexture(GL_TEXTURE0);
     mGrassTexture->bind(); // binds to texture unit 0
@@ -168,7 +109,7 @@ void MainWindow::paintGL()
 
     mGrassTexture->release();
 
-    mGrassProgram->release();
+    mGrassProgram.release();
 
 
     if (checkGLErrors())
@@ -236,6 +177,31 @@ bool MainWindow::checkGLErrors()
 
 
 
+void MainWindow::updateWind()
+{
+    // TODO
+}
+
+void MainWindow::updateGrassWindOffsets()
+{
+    cl_int err;
+
+    err = clEnqueueAcquireGLObjects(mCLWrapper->queue(), 1, &mGrassWindPositions, 0, NULL, NULL);
+    ERROR_IF_NOT_SUCCESS(err, "Failed to acquire a GL buffer for OpenCL use.");
+
+
+    ERROR_IF_FALSE(mWindProgram->reactToWind(mGrassWindPositions,
+                                             mGrassWindVelocities,
+                                             mGrassWindStrength, mNumBlades, 0.1),
+                   "Failed to run wind program");
+
+    err = clEnqueueReleaseGLObjects(mCLWrapper->queue(), 1, &mGrassWindPositions, 0, NULL, NULL);
+    ERROR_IF_NOT_SUCCESS(err, "Failed to release GL buffers from OpenCL use.");
+
+    err = clFinish(mCLWrapper->queue());
+    ERROR_IF_NOT_SUCCESS(err, "Failed to finish OpenCL commands.");
+}
+
 void MainWindow::updateGrassModel(float bendAngle)
 {
     QVector<float> model = Grass::makeGrassModel(15, 0.2, 2, bendAngle);
@@ -249,7 +215,6 @@ void MainWindow::updateGrassModel(float bendAngle)
 
 void MainWindow::createGrassModel(float bendAngle)
 {
-    mStartTime = QTime::currentTime();
     QVector<float> model = Grass::makeGrassModel(15, 0.2, 2, bendAngle);
     mNumVerticesPerBlade = 15 * 6; // num segments * 6 verts per segment
 
@@ -266,7 +231,7 @@ void MainWindow::createGrassModel(float bendAngle)
 }
 
 
-void MainWindow::createGrassOffsets()
+void MainWindow::createGrassInstanceData()
 {
 
     const int bladesX = 100;
@@ -365,37 +330,39 @@ void MainWindow::createGrassVAO()
     ERROR_IF_FALSE(mGrassVAO->create(), "Failed to create VAO.");
     mGrassVAO->bind();
 
-    mGrassProgram->enableAttributeArray(mGrassProgram_vPosition);
-    mGrassProgram->enableAttributeArray(mGrassProgram_vTexCoord);
-    mGrassProgram->enableAttributeArray(mGrassProgram_vOffset);
+    mGrassProgram.enableAllAttributeArrays();
 
-    // A mat3 is like 3 vec3 attributes.
-    mGrassProgram->enableAttributeArray(mGrassProgram_vRotation + 0);
-    mGrassProgram->enableAttributeArray(mGrassProgram_vRotation + 1);
-    mGrassProgram->enableAttributeArray(mGrassProgram_vRotation + 2);
-
-    mGrassProgram->enableAttributeArray(mGrassProgram_vWindPosition);
-
+    // vPosition, vTexCoord
     mGrassBladeModelBuffer->bind();
-    mGrassProgram->setAttributeBuffer(mGrassProgram_vPosition, GL_FLOAT, 0, 3, 5 * sizeof(float));
-    mGrassProgram->setAttributeBuffer(mGrassProgram_vTexCoord, GL_FLOAT, 3 * sizeof(float), 2, 5 * sizeof(float));
+    mGrassProgram.setPositionBuffer(0, 5 * sizeof(float));
+    mGrassProgram.setTexCoordBuffer(3 * sizeof(float), 5 * sizeof(float));
     mGrassBladeModelBuffer->release();
 
+    // vOffset, vRotation
     mGrassBladeInstancedBuffer->bind();
-    mGrassProgram->setAttributeBuffer(mGrassProgram_vOffset, GL_FLOAT, 0, 3, 12*sizeof(float));
-    mGrassProgram->setAttributeBuffer(mGrassProgram_vRotation+0, GL_FLOAT, 3*sizeof(float), 3, 12*sizeof(float));
-    mGrassProgram->setAttributeBuffer(mGrassProgram_vRotation+1, GL_FLOAT, 6*sizeof(float), 3, 12*sizeof(float));
-    mGrassProgram->setAttributeBuffer(mGrassProgram_vRotation+2, GL_FLOAT, 9*sizeof(float), 3, 12*sizeof(float));
-    glVertexAttribDivisor(mGrassProgram_vOffset, 1);
-    glVertexAttribDivisor(mGrassProgram_vRotation+0, 1);
-    glVertexAttribDivisor(mGrassProgram_vRotation+1, 1);
-    glVertexAttribDivisor(mGrassProgram_vRotation+2, 1);
+    mGrassProgram.setOffsetBuffer(0, 12 * sizeof(float));
+    mGrassProgram.setRotationBuffer(3 * sizeof(float), 12 * sizeof(float));
+    glVertexAttribDivisor(mGrassProgram.vOffset(), 1);
+    glVertexAttribDivisor(mGrassProgram.vRotationCol0(), 1);
+    glVertexAttribDivisor(mGrassProgram.vRotationCol1(), 1);
+    glVertexAttribDivisor(mGrassProgram.vRotationCol2(), 1);
     mGrassBladeInstancedBuffer->release();
 
+    // vWindPosition
     mGrassBladeWindPositionBuffer->bind();
-    mGrassProgram->setAttributeBuffer(mGrassProgram_vWindPosition, GL_FLOAT, 0, 1);
-    glVertexAttribDivisor(mGrassProgram_vWindPosition, 1);
+    mGrassProgram.setWindPositionBuffer();
+    glVertexAttribDivisor(mGrassProgram.vWindPosition(), 1);
     mGrassBladeWindPositionBuffer->release();
 
     mGrassVAO->release();
+}
+
+void MainWindow::createCLBuffersFromGLBuffers()
+{
+    cl_int err;
+    mGrassWindPositions = clCreateFromGLBuffer(mCLWrapper->context(),
+                                               CL_MEM_READ_WRITE,
+                                               mGrassBladeWindPositionBuffer->bufferId(),
+                                               &err);
+    ERROR_IF_NOT_SUCCESS(err, "Couldn't share grass wind positions buffer.");
 }

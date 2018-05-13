@@ -4,6 +4,7 @@
 
 #include "myclwrapper.h"
 #include "grasswindclprogram.h"
+#include "grassglprogram.h"
 
 #include <QOpenGLWindow>
 #include <QOpenGLExtraFunctions>
@@ -11,8 +12,6 @@
 #include <QOpenGLBuffer>
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLTexture>
-
-#include <QOpenGLShaderProgram>
 
 #include <QMouseEvent>
 #include <QPoint>
@@ -43,10 +42,15 @@ protected:
 
 private:
 
+    void updateWind();
+    void updateGrassWindOffsets();
+
     void updateGrassModel(float bendAngle);
     void createGrassModel(float bendAngle);
-    void createGrassOffsets();
+    void createGrassInstanceData();
     void createGrassVAO();
+
+    void createCLBuffersFromGLBuffers();
 
     /// Stores the data for a single grass blade.
     QOpenGLBuffer *mGrassBladeModelBuffer;
@@ -66,14 +70,7 @@ private:
 
 
     /// The shader program that should be used for rendering grass.
-    QOpenGLShaderProgram *mGrassProgram;
-    int mGrassProgram_vPosition;
-    int mGrassProgram_vTexCoord;
-    int mGrassProgram_vOffset;
-    int mGrassProgram_vRotation;
-    int mGrassProgram_vWindPosition;
-    int mGrassProgram_uMVP;
-    int mGrassProgram_uGrassTexture;
+    GrassGLProgram mGrassProgram;
 
     /// The number of grass blade instances that should be drawn.
     int mNumBlades;
@@ -98,10 +95,6 @@ private:
     QPoint mDragStart;
     float mDragRotationStart;
     bool mDragging = false;
-
-    /// Bend angle for the grass.
-    float mGrassBend;
-    QTime mStartTime;
 };
 
 #endif // MAINWINDOW_H

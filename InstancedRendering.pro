@@ -36,13 +36,15 @@ SOURCES += \
         mainwindow.cpp \
     grass.cpp \
     myclwrapper.cpp \
-    grasswindclprogram.cpp
+    grasswindclprogram.cpp \
+    grassglprogram.cpp
 
 HEADERS += \
         mainwindow.h \
     grass.h \
     myclwrapper.h \
-    grasswindclprogram.h
+    grasswindclprogram.h \
+    grassglprogram.h
 
 DISTFILES +=
 

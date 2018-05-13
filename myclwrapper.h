@@ -16,8 +16,12 @@ class MyCLWrapper
 public:
     MyCLWrapper();
 
-    /// Initializes the device, context and command queue.
-    /// A GL context must be current.
+    /// Initializes the device, context and command queue. The
+    /// context is initialized to share with the current OpenGL
+    /// context.
+    ///
+    /// An OpenGL context must be current.
+    ///
     /// Returns true on success, false on failure.
     bool create(cl_device_type deviceType = CL_DEVICE_TYPE_GPU);
 

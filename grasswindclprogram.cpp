@@ -8,6 +8,7 @@
 
 
 
+/// Gets the source code for the program.
 static QByteArray getSource()
 {
     QFile sourceFile(":/compute/grassWindReact.cl");
@@ -26,8 +27,10 @@ static QByteArray getSource()
     return bytes;
 }
 
+/// Prints out the error code to qDebug().
 static void parseEnqueueKernelReturnCode(cl_int err)
 {
+#ifndef CASE // Avoid accidentally overwriting a macro defined elsewhere.
 #define CASE(name) case name: qDebug() << #name; break;
     switch (err)
     {
@@ -50,6 +53,7 @@ static void parseEnqueueKernelReturnCode(cl_int err)
         qDebug() << "Unknown error.";
     }
 #undef CASE
+#endif
 }
 
 GrassWindCLProgram::GrassWindCLProgram()
@@ -59,6 +63,13 @@ GrassWindCLProgram::GrassWindCLProgram()
 
 bool GrassWindCLProgram::create(MyCLWrapper *wrapper)
 {
+    /* Steps:
+        1) Create a program using clCreateProgramWithSource()
+        2) Build the program using clBuildProgram()
+        3) Create the kernel with clCreateKernel() (a program may
+            contain multiple kernels)
+    */
+
     mCLWrapper = wrapper;
 
     QByteArray sourceCode = getSource();
@@ -109,10 +120,21 @@ bool GrassWindCLProgram::reactToWind(cl_mem grassWindPositions,
                                      cl_uint numBlades,
                                      cl_float dt)
 {
+    Q_ASSERT( mCreated ); // a guard against stupidity
+
+
+    /* Steps:
+        1) Set kernel arguments.
+        2) Get an ideal work group size. A GPU usually consists of several cores
+            each having several SIMD units. If our work group size is too small,
+            we won't utilize the SIMD units very well.
+        3) Enqueue the kernel.
+    */
+
     cl_int err = 0;
-    err  = clSetKernelArg(mGrassReactKernel, 0, sizeof(cl_mem), &grassWindPositions);  // documentation is unclear:
-    err |= clSetKernelArg(mGrassReactKernel, 1, sizeof(cl_mem), &grassWindVelocities); //  the sizeof(cl_mem) arg
-    err |= clSetKernelArg(mGrassReactKernel, 2, sizeof(cl_mem), &grassWindStrength);   //  might be wrong.
+    err  = clSetKernelArg(mGrassReactKernel, 0, sizeof(cl_mem), &grassWindPositions);
+    err |= clSetKernelArg(mGrassReactKernel, 1, sizeof(cl_mem), &grassWindVelocities);
+    err |= clSetKernelArg(mGrassReactKernel, 2, sizeof(cl_mem), &grassWindStrength);
     err |= clSetKernelArg(mGrassReactKernel, 3, sizeof(cl_uint), &numBlades);
     err |= clSetKernelArg(mGrassReactKernel, 4, sizeof(cl_float), &dt);
 

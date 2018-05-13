@@ -1,6 +1,7 @@
 #include "myclwrapper.h"
 
 #include <QDebug>
+#include <QOpenGLContext>
 
 MyCLWrapper::MyCLWrapper()
     : mCreated(false)
@@ -11,7 +12,7 @@ MyCLWrapper::MyCLWrapper()
 
 #ifdef __APPLE__
 #include <OpenGL.h>
-static cl_context makeCLGLContext_Apple(cl_device_id device, cl_int *err)
+static cl_context makeCLGLContext_Apple(cl_device_id *device, cl_int *err)
 {
     CGLContextObj cglContext = CGLGetCurrentContext();
     CGLShareGroupObj cglShareGroup = CGLGetShareGroup(cglContext);
@@ -21,11 +22,13 @@ static cl_context makeCLGLContext_Apple(cl_device_id device, cl_int *err)
         (cl_context_properties)cglShareGroup, 0
     };
 
-    return clCreateContext(properties, 1, &device, NULL, NULL, err);
+    return clCreateContext(properties, 1, device, NULL, NULL, err);
 }
 #endif
 
-static cl_context makeCLGLContext(cl_device_id device, cl_int *err)
+/// Creates an OpenCL context for sharing with the current OpenGL context.
+/// An OpenGL context must be current.
+static cl_context makeCLGLContext(cl_device_id *device, cl_int *err)
 {
     // I'm working on a Mac.
 #ifdef __APPLE__
@@ -33,8 +36,12 @@ static cl_context makeCLGLContext(cl_device_id device, cl_int *err)
 #endif
 }
 
+
 bool MyCLWrapper::create(cl_device_type deviceType)
 {
+    // Necessary for creating a shared context.
+    Q_ASSERT( QOpenGLContext::currentContext() != nullptr );
+
     cl_int err;
 
 
@@ -46,7 +53,7 @@ bool MyCLWrapper::create(cl_device_type deviceType)
 
 
     // Create the context.
-    mContext = makeCLGLContext(mDevice, &err);
+    mContext = makeCLGLContext(&mDevice, &err);
 
     if (err != CL_SUCCESS)
         return false;
