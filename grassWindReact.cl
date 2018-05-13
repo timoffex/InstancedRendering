@@ -21,11 +21,17 @@ __kernel void reactToWind(__global float *grassWindPositions,
         float position = grassWindPositions[bladeIdx];
         float velocity = grassWindVelocities[bladeIdx];
 
-        float acceleration = neutralPosition - position;
+        const float damping = 0.999;
+        const float dampingSquared = damping * damping;
 
-        // second order approximation
-        float newPosition = position + dt * velocity + 0.5 * dt * dt * acceleration;
-        float newVelocity = velocity + dt * acceleration;
+        float sn, cs;
+        sn = sincos(damping * dt, &cs);
+
+        float hc = dampingSquared * neutralPosition;
+        float x_minus_hc = position - hc;
+
+        float newPosition = velocity * sn + x_minus_hc * cs + hc;
+        float newVelocity = damping * (velocity * cs - x_minus_hc * sn);
 
         grassWindPositions[bladeIdx] = newPosition;
         grassWindVelocities[bladeIdx] = newVelocity;

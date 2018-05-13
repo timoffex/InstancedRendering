@@ -78,6 +78,14 @@ void MainWindow::initializeGL()
     ERROR_IF_NEG1(mGrassProgram_uGrassTexture, "Didn't find uGrassTexture.");
 
 
+    // Initialize OpenCL stuff here.
+    mCLWrapper = new MyCLWrapper();
+    ERROR_IF_FALSE(mCLWrapper->create(), "Failed to initialize OpenCL.");
+
+    mWindProgram = new GrassWindCLProgram();
+    ERROR_IF_FALSE(mWindProgram->create(mCLWrapper), "Failed to create wind program.");
+
+
     mGrassBend = 45;
     createGrassModel(mGrassBend);
     createGrassOffsets();
@@ -87,13 +95,6 @@ void MainWindow::initializeGL()
         qDebug() << "^ in initializeGL()";
 
 
-    // Initialize OpenCL stuff here.
-    mCLWrapper = new MyCLWrapper();
-    ERROR_IF_FALSE(mCLWrapper->create(), "Failed to initialize OpenCL.");
-
-    mWindProgram = new GrassWindCLProgram();
-    ERROR_IF_FALSE(mWindProgram->create(mCLWrapper), "Failed to create wind program.");
-
     cl_int err;
     mGrassWindPositions = clCreateFromGLBuffer(mCLWrapper->context(),
                                                CL_MEM_READ_WRITE,
@@ -101,31 +102,6 @@ void MainWindow::initializeGL()
                                                &err);
     ERROR_IF_NOT_SUCCESS(err, "Couldn't share grass wind positions buffer.");
 
-
-    const int windVelocitiesLength = mNumBlades;
-    const int windStrengthsLength = mNumBlades;
-    float *windVelocities = new float[windVelocitiesLength];
-    float *windStrengths = new float[windStrengthsLength];
-
-    for (int bladeIdx = 0; bladeIdx < mNumBlades; ++bladeIdx)
-    {
-        windVelocities[bladeIdx] = 0;
-        windStrengths[bladeIdx] = 1;
-    }
-
-    mGrassWindVelocities = clCreateBuffer(mCLWrapper->context(),
-                                          CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                          sizeof(float) * windVelocitiesLength,
-                                          windVelocities,
-                                          &err);
-
-    mGrassWindStrength = clCreateBuffer(mCLWrapper->context(),
-                                        CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                        sizeof(float) * windStrengthsLength,
-                                        windStrengths,
-                                        &err);
-
-    ERROR_IF_NOT_SUCCESS(err, "Failed to create OpenCL buffers.");
 }
 
 void MainWindow::resizeGL(int w, int h)
@@ -301,7 +277,11 @@ void MainWindow::createGrassOffsets()
     float *offsets = new float[offsetsLength];
 
     const int windPositionsLength = mNumBlades;
+    const int windVelocitiesLength = mNumBlades;
+    const int windStrengthsLength = mNumBlades;
     float *windPositions = new float[windPositionsLength];
+    float *windVelocities = new float[windVelocitiesLength];
+    float *windStrengths = new float[windStrengthsLength];
 
     for (int x = 0; x < bladesX; ++x)
     {
@@ -333,7 +313,10 @@ void MainWindow::createGrassOffsets()
             offsets[12*index + 10] = 0;
             offsets[12*index + 11] = c;
 
-            windPositions[index] = 3 * (0.5 + xPos / bladesX);
+            float windTime = 4 * M_PI * xPos / bladesX;
+            windPositions[index] = 0.5 + 0.9 * sin(windTime);
+            windVelocities[index] = 0 + 0.9 * cos(windTime);
+            windStrengths[index] = 0.5;
         }
     }
 
@@ -353,8 +336,27 @@ void MainWindow::createGrassOffsets()
     ERROR_IF_FALSE(mGrassBladeWindPositionBuffer->bind(), "Failed to bind wind position buffer.");
     mGrassBladeWindPositionBuffer->allocate(windPositions, sizeof(float) * windPositionsLength);
 
+
+    cl_int err;
+    mGrassWindVelocities = clCreateBuffer(mCLWrapper->context(),
+                                          CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                                          sizeof(float) * windVelocitiesLength,
+                                          windVelocities,
+                                          &err);
+
+    mGrassWindStrength = clCreateBuffer(mCLWrapper->context(),
+                                        CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                                        sizeof(float) * windStrengthsLength,
+                                        windStrengths,
+                                        &err);
+
+    ERROR_IF_NOT_SUCCESS(err, "Failed to create OpenCL buffers.");
+
+
     delete [] offsets;
     delete [] windPositions;
+    delete [] windStrengths;
+    delete [] windVelocities;
 }
 
 void MainWindow::createGrassVAO()
