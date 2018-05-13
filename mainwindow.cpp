@@ -75,7 +75,7 @@ void MainWindow::initializeGL()
 
 void MainWindow::resizeGL(int w, int h)
 {
-    // Do nothing for now. Later, use this to change up projection matrix when aspect changes.
+    // TODO Do nothing for now. Later, use this to change up projection matrix when aspect changes.
     Q_UNUSED(w);
     Q_UNUSED(h);
 }
@@ -241,9 +241,9 @@ void MainWindow::createGrassInstanceData()
     const int offsetsLength = mNumBlades * (3 + 9); // 3 for offset, 9 for rotation matrix
     float *offsets = new float[offsetsLength];
 
-    const int windPositionsLength = mNumBlades;
-    const int windVelocitiesLength = mNumBlades;
-    const int windStrengthsLength = mNumBlades;
+    const int windPositionsLength = mNumBlades * 2;
+    const int windVelocitiesLength = mNumBlades * 2;
+    const int windStrengthsLength = mNumBlades * 2;
     float *windPositions = new float[windPositionsLength];
     float *windVelocities = new float[windVelocitiesLength];
     float *windStrengths = new float[windStrengthsLength];
@@ -279,9 +279,14 @@ void MainWindow::createGrassInstanceData()
             offsets[12*index + 11] = c;
 
             float windTime = 4 * M_PI * xPos / bladesX;
-            windPositions[index] = 0.5 + 0.9 * sin(windTime);
-            windVelocities[index] = 0 + 0.9 * cos(windTime);
-            windStrengths[index] = 0.5;
+            windPositions[2*index + 0] = yPos/bladesY + 0.9 * sin(windTime);
+            windPositions[2*index + 1] = -xPos/bladesX + 0.5 * sin(windTime);
+
+            windVelocities[2*index + 0] = 0 + 0.9 * cos(windTime);
+            windVelocities[2*index + 1] = 0 + 0.5 * cos(windTime);
+
+            windStrengths[2*index + 0] = yPos / bladesY;
+            windStrengths[2*index + 1] = -xPos / bladesX;
         }
     }
 

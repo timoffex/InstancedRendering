@@ -118,7 +118,7 @@ void GrassGLProgram::setRotationBuffer(int offset, int stride)
 void GrassGLProgram::setWindPositionBuffer(int offset, int stride)
 {
     Q_ASSERT( mCreated );
-    mProgram->setAttributeBuffer(attr_vWindPosition, GL_FLOAT, offset, 1, stride);
+    mProgram->setAttributeBuffer(attr_vWindPosition, GL_FLOAT, offset, 2, stride);
 }
 
 void GrassGLProgram::setMVP(const QMatrix4x4 &mvp)

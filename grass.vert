@@ -9,7 +9,7 @@ in vec3 vOffset;
 in mat3 vRotation;
 
 // Offset due to wind.
-in float vWindPosition;
+in vec2 vWindPosition;
 
 out vec2 fTexCoord;
 
@@ -22,7 +22,7 @@ void main(void)
     // a "tilting in the wind" effect. Do this after rotating
     // the blade so that all blades tilt in the same direction.
     vec3 tilted = rotated;
-    tilted.x += vPosition.y * vWindPosition;
+    tilted.xy += vPosition.y * vWindPosition;
 
     gl_Position = uMVP * vec4(tilted + vOffset, 1);
 
