@@ -234,8 +234,8 @@ void MainWindow::createGrassModel(float bendAngle)
 void MainWindow::createGrassInstanceData()
 {
 
-    const int bladesX = 100;
-    const int bladesY = 100;
+    const int bladesX = 128;
+    const int bladesY = 128;
 
     mNumBlades = bladesX * bladesY;
     const int offsetsLength = mNumBlades * (3 + 9); // 3 for offset, 9 for rotation matrix
@@ -248,46 +248,59 @@ void MainWindow::createGrassInstanceData()
     float *windVelocities = new float[windVelocitiesLength];
     float *windStrengths = new float[windStrengthsLength];
 
-    for (int x = 0; x < bladesX; ++x)
-    {
-        for (int y = 0; y < bladesY; ++y)
+    auto zOrderX = [] (unsigned int idx) {
+        unsigned int x = 0;
+        unsigned char shift = 0;
+
+        while (idx > 0)
         {
-            int index = y + x * bladesY;
+            x |= ((idx % 2) << shift);
 
-            float xPos = (((float) rand() / RAND_MAX) - 0.5) * bladesX;
-            float yPos = (((float) rand() / RAND_MAX) - 0.5) * bladesY;
+            idx = idx >> 2;
 
-            offsets[12*index + 0] = xPos;
-            offsets[12*index + 1] = 0;
-            offsets[12*index + 2] = yPos;
-
-
-            float rotation = ((float) rand() / RAND_MAX) * M_PI * 2;
-            float c = cos(rotation);
-            float s = sin(rotation);
-
-            offsets[12*index +  3] = c;
-            offsets[12*index +  4] = 0;
-            offsets[12*index +  5] = -s;
-
-            offsets[12*index +  6] = 0;
-            offsets[12*index +  7] = 1;
-            offsets[12*index +  8] = 0;
-
-            offsets[12*index +  9] = s;
-            offsets[12*index + 10] = 0;
-            offsets[12*index + 11] = c;
-
-            float windTime = 4 * M_PI * xPos / bladesX;
-            windPositions[2*index + 0] = yPos/bladesY + 0.9 * sin(windTime);
-            windPositions[2*index + 1] = -xPos/bladesX + 0.5 * sin(windTime);
-
-            windVelocities[2*index + 0] = 0 + 0.9 * cos(windTime);
-            windVelocities[2*index + 1] = 0 + 0.5 * cos(windTime);
-
-            windStrengths[2*index + 0] = yPos / bladesY;
-            windStrengths[2*index + 1] = -xPos / bladesX;
+            ++shift;
         }
+
+        return (int)x;
+    };
+
+    auto zOrderY = [&zOrderX] (unsigned int idx) { return zOrderX(idx >> 1); };
+
+    for (int index = 0; index < mNumBlades; ++index)
+    {
+        float xPos = zOrderX(index) - bladesX / 2 + (((float) rand() / RAND_MAX) - 0.5);
+        float yPos = zOrderY(index) - bladesY / 2 + (((float) rand() / RAND_MAX) - 0.5);
+
+        offsets[12*index + 0] = xPos;
+        offsets[12*index + 1] = 0;
+        offsets[12*index + 2] = yPos;
+
+
+        float rotation = ((float) rand() / RAND_MAX) * M_PI * 2;
+        float c = cos(rotation);
+        float s = sin(rotation);
+
+        offsets[12*index +  3] = c;
+        offsets[12*index +  4] = 0;
+        offsets[12*index +  5] = -s;
+
+        offsets[12*index +  6] = 0;
+        offsets[12*index +  7] = 1;
+        offsets[12*index +  8] = 0;
+
+        offsets[12*index +  9] = s;
+        offsets[12*index + 10] = 0;
+        offsets[12*index + 11] = c;
+
+        float windTime = 4 * M_PI * xPos / bladesX;
+        windPositions[2*index + 0] = yPos/bladesY + 0.9 * sin(windTime);
+        windPositions[2*index + 1] = -xPos/bladesX + 0.5 * sin(windTime);
+
+        windVelocities[2*index + 0] = 0 + 0.9 * cos(windTime);
+        windVelocities[2*index + 1] = 0 + 0.5 * cos(windTime);
+
+        windStrengths[2*index + 0] = yPos / bladesY;
+        windStrengths[2*index + 1] = -xPos / bladesX;
     }
 
 
