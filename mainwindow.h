@@ -1,6 +1,10 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+
+#include "myclwrapper.h"
+#include "grasswindclprogram.h"
+
 #include <QOpenGLWindow>
 #include <QOpenGLExtraFunctions>
 
@@ -50,6 +54,10 @@ private:
     /// The per-instance data for grass blades.
     QOpenGLBuffer *mGrassBladeInstancedBuffer;
 
+    /// The "wind position" of each grass blade.
+    /// Shared by OpenCL and OpenGL.
+    QOpenGLBuffer *mGrassBladeWindPositionBuffer;
+
     /// The VAO holding all grass data.
     QOpenGLVertexArrayObject *mGrassVAO;
 
@@ -63,15 +71,27 @@ private:
     int mGrassProgram_vTexCoord;
     int mGrassProgram_vOffset;
     int mGrassProgram_vRotation;
+    int mGrassProgram_vWindPosition;
     int mGrassProgram_uMVP;
     int mGrassProgram_uGrassTexture;
-    int mGrassProgram_uWindStrength;
 
     /// The number of grass blade instances that should be drawn.
     int mNumBlades;
 
     /// The number of vertices in the grass blade model.
     int mNumVerticesPerBlade;
+
+
+    /// The OpenCL program wrapper for the wind computations.
+    GrassWindCLProgram *mWindProgram;
+
+    /// Wrapper for a CL device, context & command queue.
+    MyCLWrapper *mCLWrapper;
+
+
+    cl_mem mGrassWindPositions;     /// "position" of each grass blade (used for wind effect)
+    cl_mem mGrassWindVelocities;    /// "velocity" of each grass blade (used for wind effect)
+    cl_mem mGrassWindStrength;      /// "strength" of the wind for a grass blade
 
     /// Variable used for rotating the screen.
     float mRotation = 0;
@@ -82,9 +102,6 @@ private:
     /// Bend angle for the grass.
     float mGrassBend;
     QTime mStartTime;
-
-    /// Wind strength.
-    float mWindStrength;
 };
 
 #endif // MAINWINDOW_H

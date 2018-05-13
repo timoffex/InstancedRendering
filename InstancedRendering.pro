@@ -8,6 +8,14 @@ QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
+# This includes the OpenCL library on a Mac.
+# If compiling for a different platform, you will likely get a
+# symbols not found error. The solution is to add the appropriate
+# library options here.
+macx: {
+    LIBS += -framework OpenCL
+}
+
 TARGET = InstancedRendering
 TEMPLATE = app
 
@@ -26,11 +34,15 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
         main.cpp \
         mainwindow.cpp \
-    grass.cpp
+    grass.cpp \
+    myclwrapper.cpp \
+    grasswindclprogram.cpp
 
 HEADERS += \
         mainwindow.h \
-    grass.h
+    grass.h \
+    myclwrapper.h \
+    grasswindclprogram.h
 
 DISTFILES +=
 

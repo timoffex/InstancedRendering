@@ -3,4 +3,7 @@
         <file>grass.vert</file>
         <file>grass.frag</file>
     </qresource>
+    <qresource prefix="/compute">
+        <file>grassWindReact.cl</file>
+    </qresource>
 </RCC>
