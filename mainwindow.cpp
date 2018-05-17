@@ -7,6 +7,8 @@
 
 #include <QtMath>
 
+#include <fstream>
+
 MainWindow::MainWindow(QWindow *parent)
     : QOpenGLWindow(NoPartialUpdate, parent)
 {
@@ -71,6 +73,79 @@ void MainWindow::initializeGL()
 
 
     createCLBuffersFromGLBuffers();
+
+
+    // TODO
+//    mWindVelocities = new QOpenGLTexture(QImage(":/images/grass_blade.jpg"));
+    mWindVelocities = new QOpenGLTexture(QOpenGLTexture::Target2D);
+    ERROR_IF_FALSE(mWindVelocities->create(), "Couldn't create wind texture.");
+    mWindVelocities->setFormat(QOpenGLTexture::RGBA32F);
+    mWindVelocities->setMagnificationFilter(QOpenGLTexture::Nearest);
+    mWindVelocities->setMinificationFilter(QOpenGLTexture::Nearest);
+    mWindVelocities->setAutoMipMapGenerationEnabled(false);
+    mWindVelocities->setSize(128, 128);
+//    mWindVelocities->setBorderColor(1, 1, 1, 1);
+//    mWindVelocities->setWrapMode(QOpenGLTexture::Repeat);
+    mWindVelocities->allocateStorage();
+
+    qDebug() << "Wind velocities format: " << mWindVelocities->format();
+    qDebug() << "Wind velocities target: " << mWindVelocities->target();
+//    qDebug() << "Wind velocities pixel type: " << mWindVelocities->
+
+
+    ERROR_IF_FALSE(mWindVelocities1.create(mCLWrapper->context(), *mWindVelocities), "Failed to create a CL image.");
+    ERROR_IF_FALSE(mForces1.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
+    ERROR_IF_FALSE(mForces2.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
+    ERROR_IF_FALSE(mPressure.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
+    ERROR_IF_FALSE(mTemp1.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
+    ERROR_IF_FALSE(mTemp2.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
+
+    // Initialize forces.
+    mForces1.acquire(mCLWrapper->queue());
+    mForces1.map(mCLWrapper->queue());
+    for (int x = 50; x < 70; ++x)
+        mForces1.set(x, 1, 5, 5, 0, 0);
+    mForces1.unmap(mCLWrapper->queue());
+    mForces1.release(mCLWrapper->queue());
+
+
+    mCurForce = &mForces1;
+    mNextForce = &mForces2;
+
+
+    ERROR_IF_FALSE(mWindQuadProgram.create(), "Failed to create wind quad program.");
+
+    float windQuad[] = {
+        0.5f, 0.5f,   0.0f, 0.0f,
+        1.0f, 0.5f,   1.0f, 0.0f,
+        1.0f, 1.0f,   1.0f, 1.0f,
+
+        0.5f, 0.5f,   0.0f, 0.0f,
+        1.0f, 1.0f,   1.0f, 1.0f,
+        0.5f, 1.0f,   0.0f, 1.0f
+    };
+
+    mWindQuadBuffer = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+    ERROR_IF_FALSE(mWindQuadBuffer->create(), "Couldn't create mWindQuadBuffer.");
+    ERROR_IF_FALSE(mWindQuadBuffer->bind(), "Couldn't bind mWindQuadBuffer.");
+    mWindQuadBuffer->allocate(windQuad, sizeof(windQuad));
+    mWindQuadBuffer->release();
+
+    mWindQuadVAO = new QOpenGLVertexArrayObject(this);
+    ERROR_IF_FALSE(mWindQuadVAO->create(), "Couldn't create mWindQuadVAO.");
+
+    mWindQuadVAO->bind();
+    mWindQuadProgram.enableAllAttributeArrays();
+
+    mWindQuadBuffer->bind();
+    mWindQuadProgram.setPositionBuffer(0, 4 * sizeof(float));
+    mWindQuadProgram.setTexCoordBuffer(2 * sizeof(float), 4 * sizeof(float));
+    mWindQuadBuffer->release();
+    mWindQuadVAO->release();
+
+
+    if (checkGLErrors())
+        qDebug() << "^ in initializeGL() at end";
 }
 
 void MainWindow::resizeGL(int w, int h)
@@ -85,14 +160,16 @@ void MainWindow::paintGL()
     updateWind();
     updateGrassWindOffsets();
 
+    ERROR_IF_NOT_SUCCESS(clFinish(mCLWrapper->queue()), "Failed to finish OpenCL commands.");
+
     glViewport(0, 0, width(), height());
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     QMatrix4x4 matrix;
     matrix.perspective(90, (float) width() / height(), 0.1, 100);
-    matrix.translate(0, 0, -20);
-    matrix.rotate(30, 1, 0);
+    matrix.translate(0, 0, -35);
+    matrix.rotate(45, 1, 0);
     matrix.rotate(mRotation, 0, 1);
 
     ERROR_IF_FALSE(mGrassProgram.bind(), "Failed to bind program in paint call.");
@@ -111,6 +188,33 @@ void MainWindow::paintGL()
 
     mGrassProgram.release();
 
+    /* TODO:
+        I need to create a special program just for drawing a textured quad.
+        I need to actually draw a quad, which MAY involve creating a VAO. SMH!
+            -- Steps:
+                1) Make buffer.
+                2) Make VAO.
+                3) Enable vertex arrays.
+                4) Bind buffer.
+                5) Set vertex attribute buffer.
+        After that, I should clean up the wind texture initialization and
+        all the wind program code (the CL side and the host side). */
+
+
+    if (checkGLErrors())
+        qDebug() << "^ in paintGL() after drawing grass";
+
+    ERROR_IF_FALSE(mWindQuadProgram.bind(), "Couldn't bind mWindQuadProgram.");
+
+    mWindQuadProgram.setWindSpeedTextureUnit(0);
+    glActiveTexture(GL_TEXTURE0);
+    mWindVelocities->bind();
+
+    mWindQuadVAO->bind();
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    mWindQuadVAO->release();
+
+    mWindQuadProgram.release();
 
     if (checkGLErrors())
         qDebug() << "^ in paintGL() at end";
@@ -149,6 +253,16 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *evt)
 }
 
 
+void MainWindow::keyReleaseEvent(QKeyEvent *evt)
+{
+    if (evt->key() == Qt::Key_F)
+    {
+        // Toggle force.
+        MyCLImage_RGBA32F *tmp = mCurForce;
+        mCurForce = mNextForce;
+        mNextForce = tmp;
+    }
+}
 
 bool MainWindow::checkGLErrors()
 {
@@ -175,11 +289,25 @@ bool MainWindow::checkGLErrors()
     return hadError;
 }
 
-
-
 void MainWindow::updateWind()
 {
-    // TODO
+
+    float gridSize = 0.08;
+    float dt = 0.1;
+    float viscosity = 0.0002;
+    float density = 3;
+
+    ERROR_IF_FALSE(mWindVelocities1.acquire(mCLWrapper->queue()), "Failed to acquire a CL image.");
+
+    ERROR_IF_FALSE(mWindProgram->updateWindNew(mWindVelocities1.image(),
+                                               mCurForce->image(),
+                                               gridSize, dt, density, viscosity,
+                                               mPressure.image(),
+                                               mTemp1.image(),
+                                               mTemp2.image()),
+                   "Failed to update wind.");
+
+    ERROR_IF_FALSE(mWindVelocities1.release(mCLWrapper->queue()), "Failed to release a CL image.");
 }
 
 void MainWindow::updateGrassWindOffsets()
@@ -192,14 +320,12 @@ void MainWindow::updateGrassWindOffsets()
 
     ERROR_IF_FALSE(mWindProgram->reactToWind(mGrassWindPositions,
                                              mGrassWindVelocities,
-                                             mGrassWindStrength, mNumBlades, 0.1),
+                                             mGrassNormalizedPositions,
+                                             mWindVelocities1.image(), mNumBlades, 0.1),
                    "Failed to run wind program");
 
     err = clEnqueueReleaseGLObjects(mCLWrapper->queue(), 1, &mGrassWindPositions, 0, NULL, NULL);
     ERROR_IF_NOT_SUCCESS(err, "Failed to release GL buffers from OpenCL use.");
-
-    err = clFinish(mCLWrapper->queue());
-    ERROR_IF_NOT_SUCCESS(err, "Failed to finish OpenCL commands.");
 }
 
 void MainWindow::updateGrassModel(float bendAngle)
@@ -243,11 +369,12 @@ void MainWindow::createGrassInstanceData()
 
     const int windPositionsLength = mNumBlades * 2;
     const int windVelocitiesLength = mNumBlades * 2;
-    const int windStrengthsLength = mNumBlades * 2;
+    const int normalizedPositionsLength = mNumBlades * 2;
     float *windPositions = new float[windPositionsLength];
     float *windVelocities = new float[windVelocitiesLength];
-    float *windStrengths = new float[windStrengthsLength];
+    float *normalizedPositions = new float[normalizedPositionsLength];
 
+    // Strings together all the even bits of idx.
     auto zOrderX = [] (unsigned int idx) {
         unsigned int x = 0;
         unsigned char shift = 0;
@@ -264,12 +391,18 @@ void MainWindow::createGrassInstanceData()
         return (int)x;
     };
 
+    // Strings together all the odd bits of idx.
     auto zOrderY = [&zOrderX] (unsigned int idx) { return zOrderX(idx >> 1); };
 
     for (int index = 0; index < mNumBlades; ++index)
     {
         float xPos = zOrderX(index) - bladesX / 2 + (((float) rand() / RAND_MAX) - 0.5);
         float yPos = zOrderY(index) - bladesY / 2 + (((float) rand() / RAND_MAX) - 0.5);
+
+        float minX = -bladesX / 2 - 10;
+        float minY = -bladesY / 2 - 10;
+        float rangeX = bladesX + 20;
+        float rangeY = bladesY + 20;
 
         offsets[12*index + 0] = xPos;
         offsets[12*index + 1] = 0;
@@ -292,15 +425,15 @@ void MainWindow::createGrassInstanceData()
         offsets[12*index + 10] = 0;
         offsets[12*index + 11] = c;
 
-        float windTime = 4 * M_PI * xPos / bladesX;
-        windPositions[2*index + 0] = yPos/bladesY + 0.9 * sin(windTime);
-        windPositions[2*index + 1] = -xPos/bladesX + 0.5 * sin(windTime);
+//        float windTime = 4 * M_PI * xPos / bladesX;
+        windPositions[2*index + 0] = 0;//yPos/bladesY + 0.9 * sin(windTime);
+        windPositions[2*index + 1] = 0;//-xPos/bladesX + 0.5 * sin(windTime);
 
-        windVelocities[2*index + 0] = 0 + 0.9 * cos(windTime);
-        windVelocities[2*index + 1] = 0 + 0.5 * cos(windTime);
+        windVelocities[2*index + 0] = 0;// + 0.9 * cos(windTime);
+        windVelocities[2*index + 1] = 0;// + 0.5 * cos(windTime);
 
-        windStrengths[2*index + 0] = yPos / bladesY;
-        windStrengths[2*index + 1] = -xPos / bladesX;
+        normalizedPositions[2*index + 0] = (xPos - minX) / rangeX;
+        normalizedPositions[2*index + 1] = (yPos - minY) / rangeY;
     }
 
 
@@ -327,19 +460,19 @@ void MainWindow::createGrassInstanceData()
                                           windVelocities,
                                           &err);
 
-    mGrassWindStrength = clCreateBuffer(mCLWrapper->context(),
-                                        CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                        sizeof(float) * windStrengthsLength,
-                                        windStrengths,
-                                        &err);
+    mGrassNormalizedPositions = clCreateBuffer(mCLWrapper->context(),
+                                               CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                                               sizeof(float) * normalizedPositionsLength,
+                                               normalizedPositions,
+                                               &err);
 
     ERROR_IF_NOT_SUCCESS(err, "Failed to create OpenCL buffers.");
 
 
     delete [] offsets;
     delete [] windPositions;
-    delete [] windStrengths;
     delete [] windVelocities;
+    delete [] normalizedPositions;
 }
 
 void MainWindow::createGrassVAO()

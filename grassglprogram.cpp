@@ -80,6 +80,7 @@ void GrassGLProgram::release()
 
 void GrassGLProgram::enableAllAttributeArrays()
 {
+    Q_ASSERT( mCreated );
     mProgram->enableAttributeArray(attr_vPosition);
     mProgram->enableAttributeArray(attr_vTexCoord);
     mProgram->enableAttributeArray(attr_vOffset);

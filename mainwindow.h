@@ -3,8 +3,10 @@
 
 
 #include "myclwrapper.h"
+#include "myclimage_rgba32f.h"
 #include "grasswindclprogram.h"
 #include "grassglprogram.h"
+#include "windquadglprogram.h"
 
 #include <QOpenGLWindow>
 #include <QOpenGLExtraFunctions>
@@ -36,6 +38,8 @@ protected:
     void mouseMoveEvent(QMouseEvent *evt) override;
     void mousePressEvent(QMouseEvent *evt) override;
     void mouseReleaseEvent(QMouseEvent *evt) override;
+
+    void keyReleaseEvent(QKeyEvent *evt) override;
 
 
     bool checkGLErrors();
@@ -86,9 +90,27 @@ private:
     MyCLWrapper *mCLWrapper;
 
 
-    cl_mem mGrassWindPositions;     /// "position" of each grass blade (used for wind effect)
-    cl_mem mGrassWindVelocities;    /// "velocity" of each grass blade (used for wind effect)
-    cl_mem mGrassWindStrength;      /// "strength" of the wind for a grass blade
+    /// Program for displaying the wind for debugging purposes.
+    WindQuadGLProgram mWindQuadProgram;
+    QOpenGLBuffer *mWindQuadBuffer;
+    QOpenGLVertexArrayObject *mWindQuadVAO;
+
+    cl_mem mGrassWindPositions;         /// "position" of each grass blade (used for wind effect)
+    cl_mem mGrassWindVelocities;        /// "velocity" of each grass blade (used for wind effect)
+    cl_mem mGrassNormalizedPositions;   /// position of each grass blade, with each coordinate in (0,1)
+
+
+    /* TODO */
+    QOpenGLTexture *mWindVelocities;
+    MyCLImage_RGBA32F mWindVelocities1;
+    MyCLImage_RGBA32F mForces1;
+    MyCLImage_RGBA32F mForces2;
+    MyCLImage_RGBA32F mPressure;
+    MyCLImage_RGBA32F mTemp1;
+    MyCLImage_RGBA32F mTemp2;
+
+    MyCLImage_RGBA32F *mCurForce;
+    MyCLImage_RGBA32F *mNextForce;
 
     /// Variable used for rotating the screen.
     float mRotation = 0;
