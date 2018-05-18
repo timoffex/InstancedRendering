@@ -242,9 +242,11 @@ __kernel void updateWind(__read_only image2d_t windVelocity,
 
 __kernel void zeroTexture(__write_only image2d_t output)
 {
+    int width = get_image_width(output);
+    int height = get_image_height(output);
     int2 coords = (int2) (get_global_id(0), get_global_id(1));
-    if (coords.x == get_image_width(output) / 2 && coords.y == get_image_height(output) / 2)
-        write_imagef(output, coords, (float4) (0.0001, 0, 0, 0));
+    if (coords.x < width && coords.y < height)
+        write_imagef(output, coords, (float4) (0, 0, 0, 0));
 }
 
 // Adjusts grass blades in response to wind.
