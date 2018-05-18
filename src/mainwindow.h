@@ -2,8 +2,8 @@
 #define MAINWINDOW_H
 
 
-#include "myclwrapper.h"
-#include "myclimage_rgba32f.h"
+#include "cl_interface/myclwrapper.h"
+#include "cl_interface/myclimage_rgba32f.h"
 #include "grasswindclprogram.h"
 #include "grassglprogram.h"
 #include "windquadglprogram.h"

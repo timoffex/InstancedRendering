@@ -38,9 +38,9 @@ SOURCES += \
     src/imagetestwindow.cpp \
     src/main.cpp \
     src/mainwindow.cpp \
-    src/myclimage_rgba32f.cpp \
-    src/myclimagedescriptor.cpp \
-    src/myclwrapper.cpp \
+    src/cl_interface/myclimage_rgba32f.cpp \
+    src/cl_interface/myclimagedescriptor.cpp \
+    src/cl_interface/myclwrapper.cpp \
     src/windquadglprogram.cpp
 
 HEADERS += \
@@ -49,9 +49,9 @@ HEADERS += \
     src/grasswindclprogram.h \
     src/imagetestwindow.h \
     src/mainwindow.h \
-    src/myclimage_rgba32f.h \
-    src/myclimagedescriptor.h \
-    src/myclwrapper.h \
+    src/cl_interface/myclimage_rgba32f.h \
+    src/cl_interface/myclimagedescriptor.h \
+    src/cl_interface/myclwrapper.h \
     src/windquadglprogram.h
 
 DISTFILES += \
