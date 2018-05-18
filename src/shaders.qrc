@@ -1,5 +1,5 @@
 <RCC>
-    <qresource prefix="/shaders">
+    <qresource prefix="/">
         <file>shaders/grass.frag</file>
         <file>shaders/grass.vert</file>
         <file>shaders/texturedNDC.vert</file>
