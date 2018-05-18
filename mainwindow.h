@@ -38,6 +38,7 @@ protected:
     void mouseMoveEvent(QMouseEvent *evt) override;
     void mousePressEvent(QMouseEvent *evt) override;
     void mouseReleaseEvent(QMouseEvent *evt) override;
+    void wheelEvent(QWheelEvent *evt) override;
 
     void keyReleaseEvent(QKeyEvent *evt) override;
 
@@ -45,6 +46,11 @@ protected:
     bool checkGLErrors();
 
 private:
+
+    void beginDrag(QMouseEvent *evt);
+
+    void initializeCamera();
+    QMatrix4x4 getViewMatrix() const;
 
     void updateWind();
     void updateGrassWindOffsets();
@@ -112,13 +118,22 @@ private:
     MyCLImage_RGBA32F *mCurForce;
     MyCLImage_RGBA32F *mNextForce;
 
-    /// Variable used for rotating the screen.
-    float mRotation = 0;
+    /* Camera variables. */
+    QVector3D mCameraOffset;
+    float mCameraPitch;
+    float mCameraYaw;
+    float mCameraZoom;
+    float mCameraZoomSensitivity;
+    float mCameraMoveSensitivity;
+
+    /* Variables for dragging. */
     QPoint mDragStart;
-    float mDragRotationStart;
     bool mDragging = false;
+    QVector3D mDragOffsetStart;
+    float mDragPitchStart;
+    float mDragYawStart;
 
-
+    /// Used to keep track of time.
     QTime mApplicationStartTime;
 };
 

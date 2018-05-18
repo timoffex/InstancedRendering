@@ -325,7 +325,7 @@ __kernel void reactToWind2(__global float2 *grassWindOffsets,           // The t
 
         float timeOffset = grassPeriodOffsets[bladeIdx];
         float vibrationTime = vibrationFrequency * (time + timeOffset);
-        float2 vibrationOffset = windDirection * sin(vibrationTime) * vibrationMagnitude * windStrength;
+        float2 vibrationOffset = windDirection * sin(vibrationTime) * vibrationMagnitude * min(windStrength, 2.0f);
 
         grassWindOffsets[bladeIdx] = neutralOffset + vibrationOffset;
     }

@@ -48,9 +48,9 @@ static void ERROR_IF_NOT_SUCCESS(cl_int err, const char *msg)
 void MainWindow::initializeGL()
 {
     initializeOpenGLFunctions();
-
     glEnable(GL_DEPTH_TEST);
 
+    initializeCamera();
 
     // Create the OpenGL shader program for rendering grass.
     ERROR_IF_FALSE(mGrassProgram.create(), "Failed to create grass program.");
@@ -77,7 +77,6 @@ void MainWindow::initializeGL()
 
 
     // TODO
-//    mWindVelocities = new QOpenGLTexture(QImage(":/images/grass_blade.jpg"));
     mWindVelocities = new QOpenGLTexture(QOpenGLTexture::Target2D);
     ERROR_IF_FALSE(mWindVelocities->create(), "Couldn't create wind texture.");
     mWindVelocities->setFormat(QOpenGLTexture::RGBA32F);
@@ -85,13 +84,7 @@ void MainWindow::initializeGL()
     mWindVelocities->setMinificationFilter(QOpenGLTexture::Nearest);
     mWindVelocities->setAutoMipMapGenerationEnabled(false);
     mWindVelocities->setSize(128, 128);
-//    mWindVelocities->setBorderColor(1, 1, 1, 1);
-//    mWindVelocities->setWrapMode(QOpenGLTexture::Repeat);
     mWindVelocities->allocateStorage();
-
-    qDebug() << "Wind velocities format: " << mWindVelocities->format();
-    qDebug() << "Wind velocities target: " << mWindVelocities->target();
-//    qDebug() << "Wind velocities pixel type: " << mWindVelocities->
 
 
     ERROR_IF_FALSE(mWindVelocities1.create(mCLWrapper->context(), *mWindVelocities), "Failed to create a CL image.");
@@ -109,12 +102,12 @@ void MainWindow::initializeGL()
     mForces1.unmap(mCLWrapper->queue());
     mForces1.release(mCLWrapper->queue());
 
-    mForces2.acquire(mCLWrapper->queue());
-    mForces2.map(mCLWrapper->queue());
-    for (int x = 50; x < 70; ++x)
-        mForces2.set(x, 40, 0, 5, 0, 0);
-    mForces2.unmap(mCLWrapper->queue());
-    mForces2.release(mCLWrapper->queue());
+//    mForces2.acquire(mCLWrapper->queue());
+//    mForces2.map(mCLWrapper->queue());
+//    for (int y = 20; y < 30; ++y)
+//        mForces2.set(30, y, -10, 0, 0, 0);
+//    mForces2.unmap(mCLWrapper->queue());
+//    mForces2.release(mCLWrapper->queue());
 
 
     mCurForce = &mForces1;
@@ -124,13 +117,13 @@ void MainWindow::initializeGL()
     ERROR_IF_FALSE(mWindQuadProgram.create(), "Failed to create wind quad program.");
 
     float windQuad[] = {
-        0.5f, 0.5f,   0.0f, 0.0f,
-        1.0f, 0.5f,   1.0f, 0.0f,
-        1.0f, 1.0f,   1.0f, 1.0f,
+        0.5f, 0.5f,   1.0f, 0.0f,
+        1.0f, 0.5f,   0.0f, 0.0f,
+        1.0f, 1.0f,   0.0f, 1.0f,
 
-        0.5f, 0.5f,   0.0f, 0.0f,
-        1.0f, 1.0f,   1.0f, 1.0f,
-        0.5f, 1.0f,   0.0f, 1.0f
+        0.5f, 0.5f,   1.0f, 0.0f,
+        1.0f, 1.0f,   0.0f, 1.0f,
+        0.5f, 1.0f,   1.0f, 1.0f
     };
 
     mWindQuadBuffer = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
@@ -174,15 +167,13 @@ void MainWindow::paintGL()
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    QMatrix4x4 matrix;
-    matrix.perspective(90, (float) width() / height(), 0.1, 100);
-    matrix.translate(0, 0, -35);
-    matrix.rotate(45, 1, 0);
-    matrix.rotate(mRotation, 0, 1);
+    QMatrix4x4 perspectiveMat;
+    perspectiveMat.perspective(90, (float) width() / height(), 0.1, 250);
+    QMatrix4x4 viewMat = getViewMatrix();
 
     ERROR_IF_FALSE(mGrassProgram.bind(), "Failed to bind program in paint call.");
 
-    mGrassProgram.setMVP(matrix);
+    mGrassProgram.setMVP(perspectiveMat * viewMat);
     mGrassProgram.setGrassTextureUnit(0);
 
     glActiveTexture(GL_TEXTURE0);
@@ -236,7 +227,32 @@ void MainWindow::mouseMoveEvent(QMouseEvent *evt)
 {
     if (mDragging)
     {
-        mRotation = mDragRotationStart + (evt->x() - mDragStart.x()) / 5.0;
+        if (evt->modifiers() == Qt::ShiftModifier)
+        {
+            // Change offset if the shift key is pressed.
+            QVector2D delta(evt->pos() - mDragStart);
+
+            QVector4D offset(-delta.x(), delta.y(), 0, 1);
+
+            QMatrix4x4 rotation;
+            rotation.rotate(-mCameraYaw, 0, 1);
+            rotation.rotate(-mCameraPitch, 1, 0);
+
+
+            offset = rotation * offset * mCameraMoveSensitivity;
+            offset.setY(0);
+
+            mCameraOffset += offset.toVector3D();
+        }
+        else
+        {
+            // Change angles if the shift key is not pressed.
+            mCameraPitch = mDragPitchStart + (evt->y() - mDragStart.y()) / 5.0;
+            mCameraYaw = mDragYawStart + (evt->x() - mDragStart.x()) / 5.0;
+        }
+
+        beginDrag(evt);
+
         update();
     }
 }
@@ -246,9 +262,7 @@ void MainWindow::mousePressEvent(QMouseEvent *evt)
     if (evt->button() == Qt::LeftButton)
     {
         Q_ASSERT( !mDragging );
-        mDragging = true;
-        mDragStart = evt->pos();
-        mDragRotationStart = mRotation;
+        beginDrag(evt);
     }
 }
 
@@ -260,6 +274,10 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *evt)
     }
 }
 
+void MainWindow::wheelEvent(QWheelEvent *evt)
+{
+    mCameraZoom *= pow(1.1, evt->angleDelta().y() * mCameraZoomSensitivity);
+}
 
 void MainWindow::keyReleaseEvent(QKeyEvent *evt)
 {
@@ -287,7 +305,7 @@ bool MainWindow::checkGLErrors()
             qDebug() << "Invalid value.";
             break;
         default:
-            qDebug() << "Unprocessed error.";
+            qDebug() << "Unprocessed GL error.";
             break;
         }
 
@@ -297,12 +315,42 @@ bool MainWindow::checkGLErrors()
     return hadError;
 }
 
+void MainWindow::beginDrag(QMouseEvent *evt)
+{
+    mDragging = true;
+    mDragStart = evt->pos();
+    mDragPitchStart = mCameraPitch;
+    mDragYawStart = mCameraYaw;
+}
+
+void MainWindow::initializeCamera()
+{
+    mCameraOffset = QVector3D(15, 0, -15);
+    mCameraPitch = 45;
+    mCameraYaw = -135;
+    mCameraZoom = 30;
+    mCameraZoomSensitivity = 0.15;
+    mCameraMoveSensitivity = 0.3;
+}
+
+QMatrix4x4 MainWindow::getViewMatrix() const
+{
+    QMatrix4x4 mat;
+
+    mat.translate(0, 0, -mCameraZoom);
+    mat.rotate(mCameraPitch, 1, 0);
+    mat.rotate(mCameraYaw, 0, 1);
+    mat.translate(-mCameraOffset);
+
+    return mat;
+}
+
 void MainWindow::updateWind()
 {
 
-    float gridSize = 0.08;
+    float gridSize = 0.15;
     float dt = 0.1;
-    float viscosity = 0.0002;
+    float viscosity = 0.00004;
     float density = 3;
 
     ERROR_IF_FALSE(mWindVelocities1.acquire(mCLWrapper->queue()), "Failed to acquire a CL image.");
@@ -405,15 +453,17 @@ void MainWindow::createGrassInstanceData()
     // Strings together all the odd bits of idx.
     auto zOrderY = [&zOrderX] (unsigned int idx) { return zOrderX(idx >> 1); };
 
+    float positionScale = 0.5;
+
     for (int index = 0; index < mNumBlades; ++index)
     {
-        float xPos = zOrderX(index) - bladesX / 2 + (((float) rand() / RAND_MAX) - 0.5);
-        float yPos = zOrderY(index) - bladesY / 2 + (((float) rand() / RAND_MAX) - 0.5);
+        float xPos = positionScale * (zOrderX(index) - bladesX / 2 + (((float) rand() / RAND_MAX) - 0.5));
+        float yPos = positionScale * (zOrderY(index) - bladesY / 2 + (((float) rand() / RAND_MAX) - 0.5));
 
-        float minX = -bladesX / 2 - 10;
-        float minY = -bladesY / 2 - 10;
-        float rangeX = bladesX + 20;
-        float rangeY = bladesY + 20;
+        float minX = positionScale * (-bladesX / 2 - 2);
+        float minY = positionScale * (-bladesY / 2 - 2);
+        float rangeX = positionScale * (bladesX + 4);
+        float rangeY = positionScale * (bladesY + 4);
 
         offsets[12*index + 0] = xPos;
         offsets[12*index + 1] = 0;
@@ -442,8 +492,8 @@ void MainWindow::createGrassInstanceData()
 
         periodOffsets[index] = ((float) rand() / RAND_MAX) * 2 * M_PI;
 
-        normalizedPositions[2*index + 0] = (xPos - minX) / rangeX;
-        normalizedPositions[2*index + 1] = (yPos - minY) / rangeY;
+        normalizedPositions[2*index + 0] = ((xPos - minX) / rangeX);
+        normalizedPositions[2*index + 1] = ((yPos - minY) / rangeY);
     }
 
 
