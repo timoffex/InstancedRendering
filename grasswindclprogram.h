@@ -23,6 +23,13 @@ public:
                      cl_uint numBlades,
                      cl_float dt);
 
+    bool reactToWind2(cl_mem grassWindOffsets,
+                      cl_mem grassPeriodOffsets,
+                      cl_mem grassNormalizedPositions,
+                      cl_image windVelocity,
+                      cl_uint numBlades,
+                      cl_float time);
+
 
     /// Runs the updateWind kernel. Does NOT call clFinish().
     bool updateWind(cl_image windSpeeds,
@@ -86,6 +93,7 @@ public:
 
     cl_program mProgram;
     cl_kernel mGrassReactKernel;
+    cl_kernel mGrassReact2Kernel;
     cl_kernel mUpdateWindKernel;
     cl_kernel mZeroTextureKernel;
 

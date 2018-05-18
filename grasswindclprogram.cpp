@@ -80,7 +80,59 @@ static void parseBuildReturnCode(cl_int err)
 #endif
 }
 
-static void factorEvenly(size_t num, size_t *f1, size_t *f2);
+static size_t nextMultiple(size_t startVal, size_t factor)
+{
+    size_t remainder = startVal % factor;
+
+    if (remainder > 0)
+        return startVal + (factor - remainder);
+    else
+        return startVal;
+}
+
+/// Factors num into f1 * f2 such that f1 and f2 are
+/// close to each other.
+static void factorEvenly(size_t num, size_t *f1, size_t *f2)
+{
+    /* Strategy:
+        Write out the prime factorization of num in ascending order.
+        Every (2k)th factor goes to f1, every (2k+1)th factor goes to f2. */
+
+    const size_t initialNum = num;
+    *f1 = 1;
+    *f2 = 1;
+
+    size_t *cur = f1;
+    size_t *next = f2;
+
+    size_t current_factor = 2;
+
+    while (num > 1)
+    {
+        // If num is divisible by current_factor...
+        if (num % current_factor == 0)
+        {
+            // Then multiply that factor into cur
+            *cur *= current_factor;
+
+            // Swap cur with next
+            size_t *temp = cur;
+            cur = next;
+            next = temp;
+
+            // Divide num.
+            num /= current_factor;
+        }
+        else
+        {
+            // Go to the next factor.
+            ++current_factor;
+        }
+    }
+
+    Q_ASSERT( (*f1) * (*f2) == initialNum);
+}
+
 static cl_int run2DKernel(cl_command_queue queue, cl_device_id device, cl_kernel kernel, size_t globalSize1, size_t globalSize2)
 {
     cl_int err;
@@ -163,6 +215,7 @@ bool GrassWindCLProgram::create(MyCLWrapper *wrapper)
     }
 
     MAKE_KERNEL(mGrassReactKernel, "reactToWind");
+    MAKE_KERNEL(mGrassReact2Kernel, "reactToWind2");
     MAKE_KERNEL(mUpdateWindKernel, "updateWind");
     MAKE_KERNEL(mZeroTextureKernel, "zeroTexture");
 
@@ -227,10 +280,7 @@ bool GrassWindCLProgram::reactToWind(cl_mem grassWindPositions,
         return false;
     }
 
-    size_t globalSize = numBlades;
-    if (globalSize % workGroupSize > 0)
-        globalSize += workGroupSize - (globalSize % workGroupSize); // global size must be divisible by work group size
-
+    size_t globalSize = nextMultiple(numBlades, workGroupSize);
     err = clEnqueueNDRangeKernel(mCLWrapper->queue(), mGrassReactKernel, 1, NULL, &globalSize, &workGroupSize, 0, NULL, NULL);
 
     if (err != CL_SUCCESS)
@@ -245,47 +295,50 @@ bool GrassWindCLProgram::reactToWind(cl_mem grassWindPositions,
     return true;
 }
 
-/// Factors num into f1 * f2 such that f1 and f2 are
-/// close to each other.
-static void factorEvenly(size_t num, size_t *f1, size_t *f2)
+bool GrassWindCLProgram::reactToWind2(cl_mem grassWindOffsets,
+                                      cl_mem grassPeriodOffsets,
+                                      cl_mem grassNormalizedPositions,
+                                      cl_image windVelocity,
+                                      cl_uint numBlades,
+                                      cl_float time)
 {
-    /* Strategy:
-        Write out the prime factorization of num in ascending order.
-        Every (2k)th factor goes to f1, every (2k+1)th factor goes to f2. */
+    Q_ASSERT( mCreated );
 
-    const size_t initialNum = num;
-    *f1 = 1;
-    *f2 = 1;
+    cl_int err;
 
-    size_t *cur = f1;
-    size_t *next = f2;
+    err  = clSetKernelArg(mGrassReact2Kernel, 0, sizeof(cl_mem), &grassWindOffsets);
+    err |= clSetKernelArg(mGrassReact2Kernel, 1, sizeof(cl_mem), &grassPeriodOffsets);
+    err |= clSetKernelArg(mGrassReact2Kernel, 2, sizeof(cl_mem), &grassNormalizedPositions);
+    err |= clSetKernelArg(mGrassReact2Kernel, 3, sizeof(cl_image), &windVelocity);
+    err |= clSetKernelArg(mGrassReact2Kernel, 4, sizeof(cl_uint), &numBlades);
+    err |= clSetKernelArg(mGrassReact2Kernel, 5, sizeof(cl_float), &time);
 
-    size_t current_factor = 2;
-
-    while (num > 1)
+    if (err != CL_SUCCESS)
     {
-        // If num is divisible by current_factor...
-        if (num % current_factor == 0)
-        {
-            // Then multiply that factor into cur
-            *cur *= current_factor;
-
-            // Swap cur with next
-            size_t *temp = cur;
-            cur = next;
-            next = temp;
-
-            // Divide num.
-            num /= current_factor;
-        }
-        else
-        {
-            // Go to the next factor.
-            ++current_factor;
-        }
+        qDebug() << "Failed to set kernel arguments for the second grass react.";
+        return false;
     }
 
-    Q_ASSERT( (*f1) * (*f2) == initialNum);
+    size_t localSize;
+    err = clGetKernelWorkGroupInfo(mGrassReact2Kernel, mCLWrapper->device(), CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &localSize, NULL);
+
+    if (err != CL_SUCCESS)
+    {
+        qDebug() << "Failed to retrieve work group size for mGrassReact2Kernel";
+        return false;
+    }
+
+    size_t globalSize = nextMultiple(numBlades, localSize);
+    err = clEnqueueNDRangeKernel(mCLWrapper->queue(), mGrassReact2Kernel, 1, NULL, &globalSize, &localSize, 0, NULL, NULL);
+
+    if (err != CL_SUCCESS)
+    {
+        qDebug() << "Failed to enqueue mGrassReact2Kernel.";
+        parseEnqueueKernelReturnCode(err);
+        return false;
+    }
+
+    return true;
 }
 
 bool GrassWindCLProgram::updateWind(cl_image windSpeeds,
@@ -488,6 +541,7 @@ bool GrassWindCLProgram::updateWindNew(cl_image windSpeeds,
 
 
     /* STEP (6) enforce boundary conditions */
+//    addScaled(temp1, temp2, 0, windSpeeds);
     if (!velocityBoundary(temp1, windSpeeds))
     {
         qDebug() << "Failure running velocityBoundary.";

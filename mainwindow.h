@@ -96,7 +96,7 @@ private:
     QOpenGLVertexArrayObject *mWindQuadVAO;
 
     cl_mem mGrassWindPositions;         /// "position" of each grass blade (used for wind effect)
-    cl_mem mGrassWindVelocities;        /// "velocity" of each grass blade (used for wind effect)
+    cl_mem mGrassPeriodOffsets;        /// "velocity" of each grass blade (used for wind effect)
     cl_mem mGrassNormalizedPositions;   /// position of each grass blade, with each coordinate in (0,1)
 
 
@@ -117,6 +117,9 @@ private:
     QPoint mDragStart;
     float mDragRotationStart;
     bool mDragging = false;
+
+
+    QTime mApplicationStartTime;
 };
 
 #endif // MAINWINDOW_H

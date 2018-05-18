@@ -12,6 +12,7 @@
 MainWindow::MainWindow(QWindow *parent)
     : QOpenGLWindow(NoPartialUpdate, parent)
 {
+    mApplicationStartTime = QTime::currentTime();
 }
 
 MainWindow::~MainWindow()
@@ -107,6 +108,13 @@ void MainWindow::initializeGL()
         mForces1.set(x, 1, 5, 5, 0, 0);
     mForces1.unmap(mCLWrapper->queue());
     mForces1.release(mCLWrapper->queue());
+
+    mForces2.acquire(mCLWrapper->queue());
+    mForces2.map(mCLWrapper->queue());
+    for (int x = 50; x < 70; ++x)
+        mForces2.set(x, 40, 0, 5, 0, 0);
+    mForces2.unmap(mCLWrapper->queue());
+    mForces2.release(mCLWrapper->queue());
 
 
     mCurForce = &mForces1;
@@ -317,11 +325,14 @@ void MainWindow::updateGrassWindOffsets()
     err = clEnqueueAcquireGLObjects(mCLWrapper->queue(), 1, &mGrassWindPositions, 0, NULL, NULL);
     ERROR_IF_NOT_SUCCESS(err, "Failed to acquire a GL buffer for OpenCL use.");
 
+    cl_float time = mApplicationStartTime.msecsTo(QTime::currentTime()) / 1000.0;
 
-    ERROR_IF_FALSE(mWindProgram->reactToWind(mGrassWindPositions,
-                                             mGrassWindVelocities,
-                                             mGrassNormalizedPositions,
-                                             mWindVelocities1.image(), mNumBlades, 0.1),
+    ERROR_IF_FALSE(mWindProgram->reactToWind2(mGrassWindPositions,
+                                              mGrassPeriodOffsets,
+                                              mGrassNormalizedPositions,
+                                              mWindVelocities1.image(),
+                                              mNumBlades,
+                                              time),
                    "Failed to run wind program");
 
     err = clEnqueueReleaseGLObjects(mCLWrapper->queue(), 1, &mGrassWindPositions, 0, NULL, NULL);
@@ -368,10 +379,10 @@ void MainWindow::createGrassInstanceData()
     float *offsets = new float[offsetsLength];
 
     const int windPositionsLength = mNumBlades * 2;
-    const int windVelocitiesLength = mNumBlades * 2;
+    const int periodOffsetsLength = mNumBlades;
     const int normalizedPositionsLength = mNumBlades * 2;
     float *windPositions = new float[windPositionsLength];
-    float *windVelocities = new float[windVelocitiesLength];
+    float *periodOffsets = new float[periodOffsetsLength];
     float *normalizedPositions = new float[normalizedPositionsLength];
 
     // Strings together all the even bits of idx.
@@ -429,8 +440,7 @@ void MainWindow::createGrassInstanceData()
         windPositions[2*index + 0] = 0;//yPos/bladesY + 0.9 * sin(windTime);
         windPositions[2*index + 1] = 0;//-xPos/bladesX + 0.5 * sin(windTime);
 
-        windVelocities[2*index + 0] = 0;// + 0.9 * cos(windTime);
-        windVelocities[2*index + 1] = 0;// + 0.5 * cos(windTime);
+        periodOffsets[index] = ((float) rand() / RAND_MAX) * 2 * M_PI;
 
         normalizedPositions[2*index + 0] = (xPos - minX) / rangeX;
         normalizedPositions[2*index + 1] = (yPos - minY) / rangeY;
@@ -454,11 +464,11 @@ void MainWindow::createGrassInstanceData()
 
 
     cl_int err;
-    mGrassWindVelocities = clCreateBuffer(mCLWrapper->context(),
-                                          CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                          sizeof(float) * windVelocitiesLength,
-                                          windVelocities,
-                                          &err);
+    mGrassPeriodOffsets = clCreateBuffer(mCLWrapper->context(),
+                                         CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                                         sizeof(float) * periodOffsetsLength,
+                                         periodOffsets,
+                                         &err);
 
     mGrassNormalizedPositions = clCreateBuffer(mCLWrapper->context(),
                                                CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
@@ -471,7 +481,7 @@ void MainWindow::createGrassInstanceData()
 
     delete [] offsets;
     delete [] windPositions;
-    delete [] windVelocities;
+    delete [] periodOffsets;
     delete [] normalizedPositions;
 }
 
