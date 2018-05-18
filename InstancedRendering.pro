@@ -32,30 +32,36 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 
 SOURCES += \
-        main.cpp \
-        mainwindow.cpp \
-    grass.cpp \
-    myclwrapper.cpp \
-    grasswindclprogram.cpp \
-    grassglprogram.cpp \
-    windquadglprogram.cpp \
-    myclimage_rgba32f.cpp \
-    myclimagedescriptor.cpp \
-    imagetestwindow.cpp
+    src/grass.cpp \
+    src/grassglprogram.cpp \
+    src/grasswindclprogram.cpp \
+    src/imagetestwindow.cpp \
+    src/main.cpp \
+    src/mainwindow.cpp \
+    src/myclimage_rgba32f.cpp \
+    src/myclimagedescriptor.cpp \
+    src/myclwrapper.cpp \
+    src/windquadglprogram.cpp
 
 HEADERS += \
-        mainwindow.h \
-    grass.h \
-    myclwrapper.h \
-    grasswindclprogram.h \
-    grassglprogram.h \
-    windquadglprogram.h \
-    myclimage_rgba32f.h \
-    myclimagedescriptor.h \
-    imagetestwindow.h
+    src/grass.h \
+    src/grassglprogram.h \
+    src/grasswindclprogram.h \
+    src/imagetestwindow.h \
+    src/mainwindow.h \
+    src/myclimage_rgba32f.h \
+    src/myclimagedescriptor.h \
+    src/myclwrapper.h \
+    src/windquadglprogram.h
 
-DISTFILES +=
+DISTFILES += \
+    src/grass_blade.jpg \
+    src/grassWindReact.cl \
+    src/grass.frag \
+    src/windQuad.frag \
+    src/grass.vert \
+    src/texturedNDC.vert
 
 RESOURCES += \
-    shaders.qrc \
-    assets.qrc
+    src/assets.qrc \
+    src/shaders.qrc
