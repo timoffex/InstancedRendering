@@ -37,14 +37,22 @@ SOURCES += \
     grass.cpp \
     myclwrapper.cpp \
     grasswindclprogram.cpp \
-    grassglprogram.cpp
+    grassglprogram.cpp \
+    windquadglprogram.cpp \
+    myclimage_rgba32f.cpp \
+    myclimagedescriptor.cpp \
+    imagetestwindow.cpp
 
 HEADERS += \
         mainwindow.h \
     grass.h \
     myclwrapper.h \
     grasswindclprogram.h \
-    grassglprogram.h
+    grassglprogram.h \
+    windquadglprogram.h \
+    myclimage_rgba32f.h \
+    myclimagedescriptor.h \
+    imagetestwindow.h
 
 DISTFILES +=
 

@@ -2,6 +2,8 @@
     <qresource prefix="/shaders">
         <file>grass.vert</file>
         <file>grass.frag</file>
+        <file>texturedNDC.vert</file>
+        <file>windQuad.frag</file>
     </qresource>
     <qresource prefix="/compute">
         <file>grassWindReact.cl</file>

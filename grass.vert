@@ -22,7 +22,8 @@ void main(void)
     // a "tilting in the wind" effect. Do this after rotating
     // the blade so that all blades tilt in the same direction.
     vec3 tilted = rotated;
-    tilted.xy += vPosition.y * vWindPosition;
+    tilted.xz += vPosition.y * vWindPosition;
+    tilted.y -= vPosition.y * (vWindPosition.x * vWindPosition.x + vWindPosition.y * vWindPosition.y) / 4;
 
     gl_Position = uMVP * vec4(tilted + vOffset, 1);
 

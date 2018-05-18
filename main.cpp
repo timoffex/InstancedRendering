@@ -1,5 +1,5 @@
 #include "mainwindow.h"
-
+#include "imagetestwindow.h"
 
 #include <QApplication>
 #include <QSurfaceFormat>
@@ -23,6 +23,7 @@ int main(int argc, char *argv[])
     format.setSwapInterval(1);
 
     MainWindow w;
+//    ImageTestWindow w;
     w.setFormat(format);
     w.resize(640, 480);
     w.show();
