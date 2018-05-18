@@ -57,10 +57,10 @@ HEADERS += \
 DISTFILES += \
     src/grass_blade.jpg \
     src/grassWindReact.cl \
-    src/grass.frag \
-    src/windQuad.frag \
-    src/grass.vert \
-    src/texturedNDC.vert
+    src/shaders/grass.frag \
+    src/shaders/windQuad.frag \
+    src/shaders/grass.vert \
+    src/shaders/texturedNDC.vert
 
 RESOURCES += \
     src/assets.qrc \
