@@ -178,9 +178,9 @@ void ImageTestWindow::initializeCL()
     ERROR_IF_FALSE(mCLWrapper.create(), "Failed to create CL context.");
     ERROR_IF_FALSE(mWindCLProgram.create(&mCLWrapper), "Failed to create WindCLProgram.");
 
-    ERROR_IF_FALSE(mWindSpeeds.create(mCLWrapper.context(), *mWindTexture), "Failed to create mImage1.");
+    ERROR_IF_FALSE(mWindSpeeds.createShared(mCLWrapper.context(), *mWindTexture), "Failed to create mImage1.");
     ERROR_IF_FALSE(mForces.create(mCLWrapper.context(), mWindTexture->width(), mWindTexture->height()), "Failed to create mImage2.");
-    ERROR_IF_FALSE(mPressure.create(mCLWrapper.context(), *mPressureTexture), "Failed to create mImage3.");
+    ERROR_IF_FALSE(mPressure.createShared(mCLWrapper.context(), *mPressureTexture), "Failed to create mImage3.");
     ERROR_IF_FALSE(mTemp1.create(mCLWrapper.context(), mWindTexture->width(), mWindTexture->height()), "Failed to create mImage4.");
     ERROR_IF_FALSE(mTemp2.create(mCLWrapper.context(), mWindTexture->width(), mWindTexture->height()), "Failed to create mImage5.");
 

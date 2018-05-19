@@ -58,7 +58,7 @@ bool MyCLImage_RGBA32F::create(cl_context context, size_t width, size_t height)
 }
 
 
-bool MyCLImage_RGBA32F::create(cl_context context, const QOpenGLTexture &texture)
+bool MyCLImage_RGBA32F::createShared(cl_context context, const QOpenGLTexture &texture)
 {
     Q_ASSERT( texture.target() == QOpenGLTexture::Target2D );
     Q_ASSERT( texture.format() == QOpenGLTexture::RGBA32F );

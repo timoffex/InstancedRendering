@@ -547,6 +547,7 @@ void MainWindow::createCLBuffersFromGLBuffers()
 
 void MainWindow::createWindData()
 {
+    /* Create an empty OpenGL texture with 4 floats per pixel. */
     mWindVelocities = new QOpenGLTexture(QOpenGLTexture::Target2D);
     ERROR_IF_FALSE(mWindVelocities->create(), "Couldn't create wind texture.");
     mWindVelocities->setFormat(QOpenGLTexture::RGBA32F);
@@ -556,8 +557,8 @@ void MainWindow::createWindData()
     mWindVelocities->setSize(128, 128);
     mWindVelocities->allocateStorage();
 
-
-    ERROR_IF_FALSE(mWindVelocities1.create(mCLWrapper->context(), *mWindVelocities), "Failed to create a CL image.");
+    /* Create */
+    ERROR_IF_FALSE(mWindVelocities1.createShared(mCLWrapper->context(), *mWindVelocities), "Failed to create a CL image.");
     ERROR_IF_FALSE(mForces1.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
     ERROR_IF_FALSE(mForces2.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
     ERROR_IF_FALSE(mPressure.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");

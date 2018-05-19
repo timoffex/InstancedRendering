@@ -25,7 +25,7 @@ public:
 
     /// Creates the image to share with the texture. The texture
     /// MUST have format CL_FLOAT / CL_RGBA.
-    bool create(cl_context context, const QOpenGLTexture &texture);
+    bool createShared(cl_context context, const QOpenGLTexture &texture);
 
 
     /// Returns the associated cl_image.
