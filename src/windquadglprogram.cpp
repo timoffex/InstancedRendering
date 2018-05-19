@@ -42,6 +42,13 @@ bool WindQuadGLProgram::create()
     return true;
 }
 
+void WindQuadGLProgram::destroy()
+{
+    delete mProgram;
+    mProgram = nullptr;
+
+    mCreated = false;
+}
 
 bool WindQuadGLProgram::bind()
 {

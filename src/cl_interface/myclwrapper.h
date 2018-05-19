@@ -19,6 +19,9 @@ public:
     /// Returns true on success, false on failure.
     bool createFromGLContext(cl_device_type deviceType = CL_DEVICE_TYPE_GPU);
 
+    /// Releases the context, queue and device.
+    void release();
+
     /// Returns the context. create() must have been called.
     cl_context context() const;
 

@@ -71,6 +71,15 @@ bool MyCLWrapper::createFromGLContext(cl_device_type deviceType)
 }
 
 
+void MyCLWrapper::release()
+{
+    clReleaseCommandQueue(mCommandQueue);
+    clReleaseContext(mContext);
+    clReleaseDevice(mDevice);
+
+    mCreated = false;
+}
+
 cl_context MyCLWrapper::context() const
 {
     Q_ASSERT( mCreated );

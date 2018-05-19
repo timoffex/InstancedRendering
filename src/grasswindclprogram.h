@@ -10,7 +10,12 @@ class GrassWindCLProgram
 public:
     GrassWindCLProgram();
 
+    /// Creates the program and its kernels. This program will
+    /// use the given MyCLWrapper object but will not own it.
     bool create(MyCLWrapper *wrapper);
+
+    /// Lets go of all resources (except the MyCLWrapper object).
+    void release();
 
     /// Runs the reactToWind kernel with the given parameters. Does NOT call clFinish().
     ///

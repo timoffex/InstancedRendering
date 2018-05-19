@@ -10,20 +10,31 @@
 #include <fstream>
 
 MainWindow::MainWindow(QWindow *parent)
-    : QOpenGLWindow(NoPartialUpdate, parent)
+    : QOpenGLWindow(NoPartialUpdate, parent),
+      mInitialized(false)
 {
     mApplicationStartTime = QTime::currentTime();
 }
 
 MainWindow::~MainWindow()
 {
-    // shader programs and VAOs have this object as the parent
+    /* Releases all GL and CL resources. */
+    releaseAllResources();
 
     delete mGrassBladeModelBuffer;
     delete mGrassBladeInstancedBuffer;
+    delete mGrassBladeWindPositionBuffer;
+    delete mGrassVAO;
+    delete mGrassTexture;
 
-    // TODO: This, and probably the above deletes, must happen with a current context.
-//    delete mGrassTexture;
+    delete mWindProgram;
+
+    delete mCLWrapper;
+
+    delete mWindQuadBuffer;
+    delete mWindQuadVAO;
+
+    delete mWindVelocities;
 }
 
 
@@ -89,6 +100,12 @@ void MainWindow::initializeGL()
 
     if (checkGLErrors())
         qDebug() << "^ in initializeGL() at end";
+
+
+    // TODO What if this window is destroyed before the context?
+    connect(QOpenGLContext::currentContext(), &QOpenGLContext::aboutToBeDestroyed, this, &MainWindow::releaseAllResources);
+
+    mInitialized = true;
 }
 
 void MainWindow::resizeGL(int w, int h)
@@ -100,6 +117,8 @@ void MainWindow::resizeGL(int w, int h)
 
 void MainWindow::paintGL()
 {
+    Q_ASSERT( mInitialized );
+
     updateWind();
     updateGrassWindOffsets();
 
@@ -206,6 +225,61 @@ bool MainWindow::checkGLErrors()
     return hadError;
 }
 
+
+void MainWindow::releaseAllResources()
+{
+    releaseCLResources();
+    releaseGLResources();
+    mInitialized = false;
+}
+
+void MainWindow::releaseCLResources()
+{
+    clReleaseMemObject(mGrassWindPositions);
+    clReleaseMemObject(mGrassPeriodOffsets);
+    clReleaseMemObject(mGrassNormalizedPositions);
+
+    mWindProgram->release();
+
+    mWindVelocitiesCL.release();
+    mForces1.release();
+    mForces2.release();
+    mPressure.release();
+    mTemp1.release();
+    mTemp2.release();
+
+    /* To avoid accidentally trying to use an image that
+        no longer exists. */
+    mCurForce = nullptr;
+    mNextForce = nullptr;
+
+    mCLWrapper->release();
+}
+
+void MainWindow::releaseGLResources()
+{
+    makeCurrent();
+
+    mGrassBladeModelBuffer->destroy();
+    mGrassBladeInstancedBuffer->destroy();
+    mGrassBladeWindPositionBuffer->destroy();
+    mGrassVAO->destroy();
+
+    mGrassTexture->destroy();
+
+    mGrassProgram.destroy();
+
+    mWindQuadProgram.destroy();
+    mWindQuadBuffer->destroy();
+    mWindQuadVAO->destroy();
+
+    /* This SHOULD happen AFTER mWindVelocitiesCL is released. */
+    mWindVelocities->destroy();
+
+    doneCurrent();
+}
+
+
 void MainWindow::beginDrag(QMouseEvent *evt)
 {
     /* Resets the drag. This MAY happen during a drag. */
@@ -295,9 +369,9 @@ void MainWindow::updateWind()
     float viscosity = 0.00004;
     float density = 3;
 
-    ERROR_IF_FALSE(mWindVelocities1.acquire(mCLWrapper->queue()), "Failed to acquire a CL image.");
+    ERROR_IF_FALSE(mWindVelocitiesCL.acquire(mCLWrapper->queue()), "Failed to acquire a CL image.");
 
-    ERROR_IF_FALSE(mWindProgram->updateWindNew(mWindVelocities1.image(),
+    ERROR_IF_FALSE(mWindProgram->updateWindNew(mWindVelocitiesCL.image(),
                                                mCurForce->image(),
                                                gridSize, dt, density, viscosity,
                                                mPressure.image(),
@@ -305,7 +379,7 @@ void MainWindow::updateWind()
                                                mTemp2.image()),
                    "Failed to update wind.");
 
-    ERROR_IF_FALSE(mWindVelocities1.release(mCLWrapper->queue()), "Failed to release a CL image.");
+    ERROR_IF_FALSE(mWindVelocitiesCL.release(mCLWrapper->queue()), "Failed to release a CL image.");
 }
 
 void MainWindow::updateGrassWindOffsets()
@@ -323,7 +397,7 @@ void MainWindow::updateGrassWindOffsets()
     ERROR_IF_FALSE(mWindProgram->reactToWind2(mGrassWindPositions,
                                               mGrassPeriodOffsets,
                                               mGrassNormalizedPositions,
-                                              mWindVelocities1.image(),
+                                              mWindVelocitiesCL.image(),
                                               mNumBlades,
                                               time),
                    "Failed to run wind program");
@@ -484,7 +558,7 @@ void MainWindow::createGrassInstanceData()
 
 void MainWindow::createGrassVAO()
 {
-    mGrassVAO = new QOpenGLVertexArrayObject(this);
+    mGrassVAO = new QOpenGLVertexArrayObject();
     ERROR_IF_FALSE(mGrassVAO->create(), "Failed to create VAO.");
     mGrassVAO->bind();
 
@@ -543,7 +617,7 @@ void MainWindow::createWindData()
 
     /* Create the CL images. Once again, I am not sure if 0-initialization
         is guaranteed. */
-    ERROR_IF_FALSE(mWindVelocities1.createShared(mCLWrapper->context(), *mWindVelocities), "Failed to create a CL image.");
+    ERROR_IF_FALSE(mWindVelocitiesCL.createShared(mCLWrapper->context(), *mWindVelocities), "Failed to create a CL image.");
     ERROR_IF_FALSE(mForces1.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
     ERROR_IF_FALSE(mForces2.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
     ERROR_IF_FALSE(mPressure.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
@@ -590,7 +664,7 @@ void MainWindow::createWindQuadData()
     mWindQuadBuffer->allocate(windQuad, sizeof(windQuad));
     mWindQuadBuffer->release();
 
-    mWindQuadVAO = new QOpenGLVertexArrayObject(this);
+    mWindQuadVAO = new QOpenGLVertexArrayObject();
     ERROR_IF_FALSE(mWindQuadVAO->create(), "Couldn't create mWindQuadVAO.");
 
     mWindQuadVAO->bind();

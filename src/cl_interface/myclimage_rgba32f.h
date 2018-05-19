@@ -25,6 +25,8 @@ public:
     /// MUST have format CL_FLOAT / CL_RGBA.
     bool createShared(cl_context context, const QOpenGLTexture &texture);
 
+    /// Releases the image object.
+    void release();
 
     /// Returns the associated cl_image.
     cl_image image() const;

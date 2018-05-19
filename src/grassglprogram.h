@@ -13,6 +13,9 @@ public:
     /// Returns true on success, false on failure.
     bool create();
 
+    /// Destroys the program.
+    void destroy();
+
     bool bind();
     void release();
 
