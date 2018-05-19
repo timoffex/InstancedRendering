@@ -1,9 +1,7 @@
 #ifndef MYCLIMAGEDESCRIPTOR_H
 #define MYCLIMAGEDESCRIPTOR_H
 
-#ifdef __APPLE__
-#include <OpenCL/opencl.h>
-#endif
+#include "include_opencl.h"
 
 class MyCLImageDescriptor
 {

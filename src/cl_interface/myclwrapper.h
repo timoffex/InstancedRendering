@@ -1,13 +1,7 @@
 #ifndef MYCLWRAPPER_H
 #define MYCLWRAPPER_H
 
-
-// This include usually only works on Macs. For other systems,
-// the correct include is probably <cl.h>
-#ifdef __APPLE__
-#include <OpenCL/opencl.h>
-#endif
-
+#include "include_opencl.h"
 
 #include <QOpenGLContext>
 
@@ -23,7 +17,7 @@ public:
     /// An OpenGL context must be current.
     ///
     /// Returns true on success, false on failure.
-    bool create(cl_device_type deviceType = CL_DEVICE_TYPE_GPU);
+    bool createFromGLContext(cl_device_type deviceType = CL_DEVICE_TYPE_GPU);
 
     /// Returns the context. create() must have been called.
     cl_context context() const;

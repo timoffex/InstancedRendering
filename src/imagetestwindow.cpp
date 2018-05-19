@@ -175,7 +175,7 @@ void ImageTestWindow::createScreenQuadTexture()
 
 void ImageTestWindow::initializeCL()
 {
-    ERROR_IF_FALSE(mCLWrapper.create(), "Failed to create CL context.");
+    ERROR_IF_FALSE(mCLWrapper.createFromGLContext(), "Failed to create CL context.");
     ERROR_IF_FALSE(mWindCLProgram.create(&mCLWrapper), "Failed to create WindCLProgram.");
 
     ERROR_IF_FALSE(mWindSpeeds.createShared(mCLWrapper.context(), *mWindTexture), "Failed to create mImage1.");

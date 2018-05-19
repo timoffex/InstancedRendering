@@ -52,6 +52,11 @@ private:
     void initializeCamera();
     QMatrix4x4 getViewMatrix() const;
 
+
+    void drawGrass();
+    void drawWindQuad();
+
+
     void updateWind();
     void updateGrassWindOffsets();
 
@@ -62,6 +67,7 @@ private:
 
     void createCLBuffersFromGLBuffers();
     void createWindData();
+    void createWindQuadData();
 
     /// Stores the data for a single grass blade.
     QOpenGLBuffer *mGrassBladeModelBuffer;

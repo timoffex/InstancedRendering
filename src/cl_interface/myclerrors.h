@@ -3,9 +3,7 @@
 
 #include <string>
 
-#ifdef __APPLE__
-#include <OpenCL/opencl.h>
-#endif
+#include "include_opencl.h"
 
 
 std::string parseCreateImageError(cl_int err);

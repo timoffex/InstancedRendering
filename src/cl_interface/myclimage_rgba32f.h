@@ -1,9 +1,7 @@
 #ifndef MYCLIMAGE_RGBA32F_H
 #define MYCLIMAGE_RGBA32F_H
 
-#ifdef __APPLE__
-#include <OpenCL/opencl.h>
-#endif
+#include "include_opencl.h"
 
 
 #include <QOpenGLTexture>

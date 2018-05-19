@@ -54,7 +54,8 @@ HEADERS += \
     src/cl_interface/myclimagedescriptor.h \
     src/cl_interface/myclwrapper.h \
     src/windquadglprogram.h \
-    src/cl_interface/myclerrors.h
+    src/cl_interface/myclerrors.h \
+    src/cl_interface/include_opencl.h
 
 DISTFILES += \
     src/grass_blade.jpg \

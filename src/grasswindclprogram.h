@@ -3,7 +3,7 @@
 
 #include "cl_interface/myclwrapper.h"
 
-#include <OpenCL/opencl.h>
+#include "cl_interface/include_opencl.h"
 
 class GrassWindCLProgram
 {
