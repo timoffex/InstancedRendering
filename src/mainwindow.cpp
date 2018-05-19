@@ -77,41 +77,7 @@ void MainWindow::initializeGL()
 
 
     // TODO
-    mWindVelocities = new QOpenGLTexture(QOpenGLTexture::Target2D);
-    ERROR_IF_FALSE(mWindVelocities->create(), "Couldn't create wind texture.");
-    mWindVelocities->setFormat(QOpenGLTexture::RGBA32F);
-    mWindVelocities->setMagnificationFilter(QOpenGLTexture::Nearest);
-    mWindVelocities->setMinificationFilter(QOpenGLTexture::Nearest);
-    mWindVelocities->setAutoMipMapGenerationEnabled(false);
-    mWindVelocities->setSize(128, 128);
-    mWindVelocities->allocateStorage();
-
-
-    ERROR_IF_FALSE(mWindVelocities1.create(mCLWrapper->context(), *mWindVelocities), "Failed to create a CL image.");
-    ERROR_IF_FALSE(mForces1.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
-    ERROR_IF_FALSE(mForces2.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
-    ERROR_IF_FALSE(mPressure.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
-    ERROR_IF_FALSE(mTemp1.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
-    ERROR_IF_FALSE(mTemp2.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
-
-    // Initialize forces.
-    mForces1.acquire(mCLWrapper->queue());
-    mForces1.map(mCLWrapper->queue());
-    for (int x = 50; x < 70; ++x)
-        mForces1.set(x, 1, 5, 5, 0, 0);
-    mForces1.unmap(mCLWrapper->queue());
-    mForces1.release(mCLWrapper->queue());
-
-//    mForces2.acquire(mCLWrapper->queue());
-//    mForces2.map(mCLWrapper->queue());
-//    for (int y = 20; y < 30; ++y)
-//        mForces2.set(30, y, -10, 0, 0, 0);
-//    mForces2.unmap(mCLWrapper->queue());
-//    mForces2.release(mCLWrapper->queue());
-
-
-    mCurForce = &mForces1;
-    mNextForce = &mForces2;
+    createWindData();
 
 
     ERROR_IF_FALSE(mWindQuadProgram.create(), "Failed to create wind quad program.");
@@ -576,4 +542,44 @@ void MainWindow::createCLBuffersFromGLBuffers()
                                                mGrassBladeWindPositionBuffer->bufferId(),
                                                &err);
     ERROR_IF_NOT_SUCCESS(err, "Couldn't share grass wind positions buffer.");
+}
+
+
+void MainWindow::createWindData()
+{
+    mWindVelocities = new QOpenGLTexture(QOpenGLTexture::Target2D);
+    ERROR_IF_FALSE(mWindVelocities->create(), "Couldn't create wind texture.");
+    mWindVelocities->setFormat(QOpenGLTexture::RGBA32F);
+    mWindVelocities->setMagnificationFilter(QOpenGLTexture::Nearest);
+    mWindVelocities->setMinificationFilter(QOpenGLTexture::Nearest);
+    mWindVelocities->setAutoMipMapGenerationEnabled(false);
+    mWindVelocities->setSize(128, 128);
+    mWindVelocities->allocateStorage();
+
+
+    ERROR_IF_FALSE(mWindVelocities1.create(mCLWrapper->context(), *mWindVelocities), "Failed to create a CL image.");
+    ERROR_IF_FALSE(mForces1.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
+    ERROR_IF_FALSE(mForces2.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
+    ERROR_IF_FALSE(mPressure.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
+    ERROR_IF_FALSE(mTemp1.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
+    ERROR_IF_FALSE(mTemp2.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
+
+    // Initialize forces.
+    mForces1.acquire(mCLWrapper->queue());
+    mForces1.map(mCLWrapper->queue());
+    for (int x = 55; x < 73; ++x)
+        mForces1.set(x, 1, 8, 8, 0, 0);
+    mForces1.unmap(mCLWrapper->queue());
+    mForces1.release(mCLWrapper->queue());
+
+//    mForces2.acquire(mCLWrapper->queue());
+//    mForces2.map(mCLWrapper->queue());
+//    for (int y = 20; y < 30; ++y)
+//        mForces2.set(30, y, -10, 0, 0, 0);
+//    mForces2.unmap(mCLWrapper->queue());
+//    mForces2.release(mCLWrapper->queue());
+
+
+    mCurForce = &mForces2;
+    mNextForce = &mForces1;
 }

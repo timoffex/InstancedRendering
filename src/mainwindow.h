@@ -61,6 +61,7 @@ private:
     void createGrassVAO();
 
     void createCLBuffersFromGLBuffers();
+    void createWindData();
 
     /// Stores the data for a single grass blade.
     QOpenGLBuffer *mGrassBladeModelBuffer;
