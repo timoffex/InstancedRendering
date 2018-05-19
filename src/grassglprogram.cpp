@@ -65,6 +65,14 @@ bool GrassGLProgram::create()
     return true;
 }
 
+void GrassGLProgram::destroy()
+{
+    delete mProgram;
+    mProgram = nullptr;
+
+    mCreated = false;
+}
+
 
 bool GrassGLProgram::bind()
 {

@@ -47,6 +47,10 @@ protected:
 
 private:
 
+    void releaseAllResources();
+    void releaseCLResources();
+    void releaseGLResources();
+
     void beginDrag(QMouseEvent *evt);
 
     void initializeCamera();
@@ -68,6 +72,10 @@ private:
     void createCLBuffersFromGLBuffers();
     void createWindData();
     void createWindQuadData();
+
+
+    /// Whether all the data is initialized.
+    bool mInitialized;
 
     /// Stores the data for a single grass blade.
     QOpenGLBuffer *mGrassBladeModelBuffer;
@@ -117,7 +125,7 @@ private:
 
     /* Wind simulation variables. */
     QOpenGLTexture *mWindVelocities;
-    MyCLImage_RGBA32F mWindVelocities1;
+    MyCLImage_RGBA32F mWindVelocitiesCL;
     MyCLImage_RGBA32F mForces1;
     MyCLImage_RGBA32F mForces2;
     MyCLImage_RGBA32F mPressure;

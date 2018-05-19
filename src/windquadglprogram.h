@@ -10,6 +10,7 @@ public:
     ~WindQuadGLProgram();
 
     bool create();
+    void destroy();
 
     bool bind();
     void release();

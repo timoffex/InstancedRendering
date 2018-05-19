@@ -188,6 +188,24 @@ bool GrassWindCLProgram::create(MyCLWrapper *wrapper)
     return true;
 }
 
+void GrassWindCLProgram::release()
+{
+    clReleaseKernel(mGrassReactKernel);
+    clReleaseKernel(mGrassReact2Kernel);
+    clReleaseKernel(mUpdateWindKernel);
+    clReleaseKernel(mZeroTextureKernel);
+    clReleaseKernel(mJacobiKernel);
+    clReleaseKernel(mAdvectKernel);
+    clReleaseKernel(mDivergenceKernel);
+    clReleaseKernel(mGradientKernel);
+    clReleaseKernel(mAddScaledKernel);
+    clReleaseKernel(mVelocityBoundaryKernel);
+    clReleaseKernel(mPressureBoundaryKernel);
+
+    clReleaseProgram(mProgram);
+
+    mCreated = false;
+}
 
 bool GrassWindCLProgram::reactToWind(cl_mem grassWindPositions,
                                      cl_mem grassWindVelocities,
