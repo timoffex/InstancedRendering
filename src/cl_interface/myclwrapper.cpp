@@ -30,14 +30,14 @@ static cl_context makeCLGLContext_Apple(cl_device_id *device, cl_int *err)
 /// An OpenGL context must be current.
 static cl_context makeCLGLContext(cl_device_id *device, cl_int *err)
 {
-    // I'm working on a Mac.
+    /* Unfortunately, this code differs between platforms. */
 #ifdef __APPLE__
     return makeCLGLContext_Apple(device, err);
 #endif
 }
 
 
-bool MyCLWrapper::create(cl_device_type deviceType)
+bool MyCLWrapper::createFromGLContext(cl_device_type deviceType)
 {
     // Necessary for creating a shared context.
     Q_ASSERT( QOpenGLContext::currentContext() != nullptr );

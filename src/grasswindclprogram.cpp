@@ -1,5 +1,7 @@
 #include "grasswindclprogram.h"
 
+#include "cl_interface/myclerrors.h"
+
 #include <QFile>
 #include <QString>
 #include <QTextStream>
@@ -28,58 +30,9 @@ static QByteArray getSource()
     return bytes;
 }
 
-/// Prints out the error code to qDebug().
-static void parseEnqueueKernelReturnCode(cl_int err)
-{
-#ifndef CASE // Avoid accidentally overwriting a macro defined elsewhere.
-#define CASE(name) case name: qDebug() << #name; break;
-    switch (err)
-    {
-    case CL_SUCCESS: qDebug() << "Enqueue-kernel was successful."; break;
-    CASE(CL_INVALID_PROGRAM_EXECUTABLE);
-    CASE(CL_INVALID_COMMAND_QUEUE);
-    CASE(CL_INVALID_KERNEL);
-    CASE(CL_INVALID_CONTEXT);
-    CASE(CL_INVALID_KERNEL_ARGS);
-    CASE(CL_INVALID_WORK_DIMENSION);
-    CASE(CL_INVALID_WORK_GROUP_SIZE);
-    CASE(CL_INVALID_WORK_ITEM_SIZE);
-    CASE(CL_INVALID_GLOBAL_OFFSET);
-    CASE(CL_OUT_OF_RESOURCES);
-    CASE(CL_MEM_OBJECT_ALLOCATION_FAILURE);
-    CASE(CL_INVALID_EVENT_WAIT_LIST);
-    CASE(CL_OUT_OF_HOST_MEMORY);
 
-    default:
-        qDebug() << "Unknown error.";
-    }
-#undef CASE
-#endif
-}
-
-static void parseBuildReturnCode(cl_int err)
-{
-#ifndef CASE // Avoid accidentally overwriting a macro defined elsewhere.
-#define CASE(name) case name: qDebug() << #name; break;
-    switch (err)
-    {
-    case CL_SUCCESS: qDebug() << "Program build was successful"; break;
-    CASE(CL_INVALID_PROGRAM);
-    CASE(CL_INVALID_VALUE);
-    CASE(CL_INVALID_DEVICE);
-    CASE(CL_INVALID_BINARY);
-    CASE(CL_INVALID_BUILD_OPTIONS);
-    CASE(CL_INVALID_OPERATION);
-    CASE(CL_COMPILER_NOT_AVAILABLE);
-    CASE(CL_BUILD_PROGRAM_FAILURE);
-    CASE(CL_OUT_OF_HOST_MEMORY);
-    default:
-        qDebug() << "Unknown error.";
-    }
-#undef CASE
-#endif
-}
-
+/// Finds the next multiple of `factor` greater than
+/// or equal to `startVal`.
 static size_t nextMultiple(size_t startVal, size_t factor)
 {
     size_t remainder = startVal % factor;
@@ -199,7 +152,7 @@ bool GrassWindCLProgram::create(MyCLWrapper *wrapper)
         clGetProgramBuildInfo(mProgram, wrapper->device(), CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, &length);
 
         qDebug() << "Failed to build program.";
-        parseBuildReturnCode(err);
+        qDebug() << QString::fromStdString(parseBuildReturnCode(err));
         qDebug() << buffer;
 
         return false;
@@ -288,7 +241,7 @@ bool GrassWindCLProgram::reactToWind(cl_mem grassWindPositions,
         qDebug() << "Failed to enqueue kernel.";
         qDebug() << "Work group size: " << workGroupSize;
         qDebug() << "Global size: " << globalSize;
-        parseEnqueueKernelReturnCode(err);
+        qDebug() << QString::fromStdString(parseEnqueueKernelReturnCode(err));
         return false;
     }
 
@@ -334,7 +287,7 @@ bool GrassWindCLProgram::reactToWind2(cl_mem grassWindOffsets,
     if (err != CL_SUCCESS)
     {
         qDebug() << "Failed to enqueue mGrassReact2Kernel.";
-        parseEnqueueKernelReturnCode(err);
+        qDebug() << QString::fromStdString(parseEnqueueKernelReturnCode(err));
         return false;
     }
 
@@ -403,7 +356,7 @@ bool GrassWindCLProgram::updateWind(cl_image windSpeeds,
         qDebug() << "Failed to enqueue updateWind kernel.";
         qDebug() << "Work group sizes: (" << workGroupSize1 << ", " << workGroupSize2 << ")";
         qDebug() << "Global sizes: (" << globalSize1 << ", " << globalSize2 << ")";
-        parseEnqueueKernelReturnCode(err);
+        qDebug() << QString::fromStdString(parseEnqueueKernelReturnCode(err));
         return false;
     }
 
@@ -621,7 +574,7 @@ bool GrassWindCLProgram::zeroTexture(cl_image img)
     if (err != CL_SUCCESS)
     {
         qDebug() << "Failed to enqueue zeroTexture kernel.";
-        parseEnqueueKernelReturnCode(err);
+        qDebug() << QString::fromStdString(parseEnqueueKernelReturnCode(err));
         return false;
     }
 
@@ -666,7 +619,7 @@ bool GrassWindCLProgram::jacobi(cl_image input,
     if (err != CL_SUCCESS)
     {
         qDebug() << "Failed enqueuing Jacobi kernel.";
-        parseEnqueueKernelReturnCode(err);
+        qDebug() << QString::fromStdString(parseEnqueueKernelReturnCode(err));
         return false;
     }
 
@@ -709,7 +662,7 @@ bool GrassWindCLProgram::advect(cl_image quantity,
     if (err != CL_SUCCESS)
     {
         qDebug() << "Failed enqueuing advection kernel.";
-        parseEnqueueKernelReturnCode(err);
+        qDebug() << QString::fromStdString(parseEnqueueKernelReturnCode(err));
         return false;
     }
 
@@ -748,7 +701,7 @@ bool GrassWindCLProgram::divergence(cl_image vecField,
     if (err != CL_SUCCESS)
     {
         qDebug() << "Failed enqueuing divergence kernel.";
-        parseEnqueueKernelReturnCode(err);
+        qDebug() << QString::fromStdString(parseEnqueueKernelReturnCode(err));
         return false;
     }
 
@@ -788,7 +741,7 @@ bool GrassWindCLProgram::gradient(cl_image func,
     if (err != CL_SUCCESS)
     {
         qDebug() << "Failed enqueuing gradient kernel.";
-        parseEnqueueKernelReturnCode(err);
+        qDebug() << QString::fromStdString(parseEnqueueKernelReturnCode(err));
         return false;
     }
 
@@ -827,7 +780,7 @@ bool GrassWindCLProgram::addScaled(cl_image t1, cl_image t2,
     if (err != CL_SUCCESS)
     {
         qDebug() << "Failed enqueuing addScaled kernel.";
-        parseEnqueueKernelReturnCode(err);
+        qDebug() << QString::fromStdString(parseEnqueueKernelReturnCode(err));
         return false;
     }
 
@@ -863,7 +816,7 @@ bool GrassWindCLProgram::velocityBoundary(cl_image img, cl_image out)
     if (err != CL_SUCCESS)
     {
         qDebug() << "Failed enqueuing velocityBoundary kernel.";
-        parseEnqueueKernelReturnCode(err);
+        qDebug() << QString::fromStdString(parseEnqueueKernelReturnCode(err));
         return false;
     }
 
@@ -898,7 +851,7 @@ bool GrassWindCLProgram::pressureBoundary(cl_image img, cl_image out)
     if (err != CL_SUCCESS)
     {
         qDebug() << "Failed enqueuing pressureBoundary kernel.";
-        parseEnqueueKernelReturnCode(err);
+        qDebug() << QString::fromStdString(parseEnqueueKernelReturnCode(err));
         return false;
     }
 

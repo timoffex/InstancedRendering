@@ -1,9 +1,9 @@
 #ifndef IMAGETESTWINDOW_H
 #define IMAGETESTWINDOW_H
 
-#include "myclimage_rgba32f.h"
-#include "myclimagedescriptor.h"
-#include "myclwrapper.h"
+#include "cl_interface/myclimage_rgba32f.h"
+#include "cl_interface/myclimagedescriptor.h"
+#include "cl_interface/myclwrapper.h"
 
 #include "windquadglprogram.h"
 

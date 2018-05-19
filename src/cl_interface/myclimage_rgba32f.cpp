@@ -1,6 +1,9 @@
 #include "myclimage_rgba32f.h"
+#include "myclerrors.h"
 
 #include <QDebug>
+
+
 
 MyCLImage_RGBA32F::MyCLImage_RGBA32F()
     : mCreated(false),
@@ -12,32 +15,6 @@ MyCLImage_RGBA32F::MyCLImage_RGBA32F()
 
 }
 
-
-bool MyCLImage_RGBA32F::create(cl_context context, cl_image_desc desc)
-{
-    // TODO: Need to assert some things about desc.
-
-    cl_image_format format;
-    format.image_channel_data_type = CL_FLOAT;
-    format.image_channel_order = CL_RGBA;
-
-    cl_int err;
-    mImage = clCreateImage(context,
-                           CL_MEM_READ_WRITE,
-                           &format,
-                           &desc,
-                           NULL,
-                           &err);
-
-    if (err != CL_SUCCESS)
-        return false;
-
-    mContext = context;
-    mWidth = desc.image_width;
-    mHeight = desc.image_height;
-    mCreated = true;
-    return true;
-}
 
 bool MyCLImage_RGBA32F::create(cl_context context, size_t width, size_t height)
 {
@@ -54,20 +31,47 @@ bool MyCLImage_RGBA32F::create(cl_context context, size_t width, size_t height)
     desc.image_height = height;
     desc.image_depth = 1;
 
-    return create(context, desc);
+    cl_image_format format;
+    format.image_channel_data_type = CL_FLOAT;
+    format.image_channel_order = CL_RGBA;
+
+    cl_int err;
+    mImage = clCreateImage(context,
+                           CL_MEM_READ_WRITE,
+                           &format,
+                           &desc,
+                           NULL,
+                           &err);
+
+    if (err != CL_SUCCESS)
+    {
+        qDebug() << QString::fromStdString(parseCreateImageError(err));
+        return false;
+    }
+
+    mContext = context;
+    mWidth = desc.image_width;
+    mHeight = desc.image_height;
+    mCreated = true;
+
+    return true;
 }
 
 
-bool MyCLImage_RGBA32F::create(cl_context context, const QOpenGLTexture &texture)
+bool MyCLImage_RGBA32F::createShared(cl_context context, const QOpenGLTexture &texture)
 {
-    // TODO: Assert facts about texture (e.g. there needs to be a specific format).
+    Q_ASSERT( texture.target() == QOpenGLTexture::Target2D );
+    Q_ASSERT( texture.format() == QOpenGLTexture::RGBA32F );
 
     cl_int err;
 
     mImage = clCreateFromGLTexture(context, CL_MEM_READ_WRITE, GL_TEXTURE_2D, 0, texture.textureId(), &err);
 
     if (err != CL_SUCCESS)
+    {
+        qDebug() << QString::fromStdString(parseCreateFromGLTextureError(err));
         return false;
+    }
 
     mContext = context;
     mWidth = texture.width();
@@ -88,11 +92,16 @@ cl_image MyCLImage_RGBA32F::image() const
 
 bool MyCLImage_RGBA32F::acquire(cl_command_queue queue)
 {
+    Q_ASSERT( mCreated );
+
     if (mFromGLTexture) {
         cl_int err = clEnqueueAcquireGLObjects(queue, 1, &mImage, 0, NULL, NULL);
 
         if (err != CL_SUCCESS)
+        {
+            qDebug() << QString::fromStdString(parseAcquireError(err));
             return false;
+        }
 
         mAcquired = true;
     }
@@ -102,11 +111,18 @@ bool MyCLImage_RGBA32F::acquire(cl_command_queue queue)
 
 bool MyCLImage_RGBA32F::release(cl_command_queue queue)
 {
+    Q_ASSERT( mCreated );
+
     if (mFromGLTexture) {
+        Q_ASSERT( mAcquired );
+
         cl_int err = clEnqueueReleaseGLObjects(queue, 1, &mImage, 0, NULL, NULL);
 
         if (err != CL_SUCCESS)
+        {
+            qDebug() << QString::fromStdString(parseReleaseError(err));
             return false;
+        }
 
         mAcquired = false;
     }
@@ -138,7 +154,10 @@ bool MyCLImage_RGBA32F::map(cl_command_queue queue)
     Q_ASSERT( rowPitch == mWidth * 4 * sizeof(float) );
 
     if (err != CL_SUCCESS)
+    {
+        qDebug() << QString::fromStdString(parseMapImageError(err));
         return false;
+    }
 
     mIsMapped = true;
     return true;
@@ -150,7 +169,10 @@ bool MyCLImage_RGBA32F::unmap(cl_command_queue queue)
     cl_int err = clEnqueueUnmapMemObject(queue, mImage, mMapPtr, 0, NULL, NULL);
 
     if (err != CL_SUCCESS)
+    {
+        qDebug() << QString::fromStdString(parseUnmapObjectError(err));
         return false;
+    }
 
     mIsMapped = false;
     mMapPtr = nullptr;

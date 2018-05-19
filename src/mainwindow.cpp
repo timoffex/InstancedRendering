@@ -52,97 +52,40 @@ void MainWindow::initializeGL()
 
     initializeCamera();
 
-    // Create the OpenGL shader program for rendering grass.
+    /* Initialize OpenCL.
+        This should be done early in initializeGL() because
+        createGrassInstanceData() uses mCLWrapper. */
+    mCLWrapper = new MyCLWrapper();
+    ERROR_IF_FALSE(mCLWrapper->createFromGLContext(), "Failed to initialize OpenCL.");
+
+
+    /* Create the OpenGL shader program for rendering grass. */
     ERROR_IF_FALSE(mGrassProgram.create(), "Failed to create grass program.");
 
 
-    // Initialize OpenCL.
-    mCLWrapper = new MyCLWrapper();
-    ERROR_IF_FALSE(mCLWrapper->create(), "Failed to initialize OpenCL.");
 
-    // Create the OpenCL program for wind effects.
-    mWindProgram = new GrassWindCLProgram();
-    ERROR_IF_FALSE(mWindProgram->create(mCLWrapper), "Failed to create wind program.");
-
-
-    createGrassModel(45);
-    createGrassInstanceData();
-    createGrassVAO();
+    createGrassModel(45);       // 45 == bend angle for the grass
+    createGrassInstanceData();  // initializes per-blade data buffers
+    createGrassVAO();           // creates the VAO
 
     if (checkGLErrors())
         qDebug() << "^ in initializeGL()";
 
 
+
+    /* Create the OpenCL program for wind effects. */
+    mWindProgram = new GrassWindCLProgram();
+    ERROR_IF_FALSE(mWindProgram->create(mCLWrapper), "Failed to create wind program.");
+
+    /* Used to create any CL buffers that share with GL buffers.
+        In particular, this is used to create the mGrassBladeWindPositionBuffer. */
     createCLBuffersFromGLBuffers();
 
+    /* Creates the variables needed to simulate wind. */
+    createWindData();
 
-    // TODO
-    mWindVelocities = new QOpenGLTexture(QOpenGLTexture::Target2D);
-    ERROR_IF_FALSE(mWindVelocities->create(), "Couldn't create wind texture.");
-    mWindVelocities->setFormat(QOpenGLTexture::RGBA32F);
-    mWindVelocities->setMagnificationFilter(QOpenGLTexture::Nearest);
-    mWindVelocities->setMinificationFilter(QOpenGLTexture::Nearest);
-    mWindVelocities->setAutoMipMapGenerationEnabled(false);
-    mWindVelocities->setSize(128, 128);
-    mWindVelocities->allocateStorage();
-
-
-    ERROR_IF_FALSE(mWindVelocities1.create(mCLWrapper->context(), *mWindVelocities), "Failed to create a CL image.");
-    ERROR_IF_FALSE(mForces1.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
-    ERROR_IF_FALSE(mForces2.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
-    ERROR_IF_FALSE(mPressure.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
-    ERROR_IF_FALSE(mTemp1.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
-    ERROR_IF_FALSE(mTemp2.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
-
-    // Initialize forces.
-    mForces1.acquire(mCLWrapper->queue());
-    mForces1.map(mCLWrapper->queue());
-    for (int x = 50; x < 70; ++x)
-        mForces1.set(x, 1, 5, 5, 0, 0);
-    mForces1.unmap(mCLWrapper->queue());
-    mForces1.release(mCLWrapper->queue());
-
-//    mForces2.acquire(mCLWrapper->queue());
-//    mForces2.map(mCLWrapper->queue());
-//    for (int y = 20; y < 30; ++y)
-//        mForces2.set(30, y, -10, 0, 0, 0);
-//    mForces2.unmap(mCLWrapper->queue());
-//    mForces2.release(mCLWrapper->queue());
-
-
-    mCurForce = &mForces1;
-    mNextForce = &mForces2;
-
-
-    ERROR_IF_FALSE(mWindQuadProgram.create(), "Failed to create wind quad program.");
-
-    float windQuad[] = {
-        0.5f, 0.5f,   1.0f, 0.0f,
-        1.0f, 0.5f,   0.0f, 0.0f,
-        1.0f, 1.0f,   0.0f, 1.0f,
-
-        0.5f, 0.5f,   1.0f, 0.0f,
-        1.0f, 1.0f,   0.0f, 1.0f,
-        0.5f, 1.0f,   1.0f, 1.0f
-    };
-
-    mWindQuadBuffer = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-    ERROR_IF_FALSE(mWindQuadBuffer->create(), "Couldn't create mWindQuadBuffer.");
-    ERROR_IF_FALSE(mWindQuadBuffer->bind(), "Couldn't bind mWindQuadBuffer.");
-    mWindQuadBuffer->allocate(windQuad, sizeof(windQuad));
-    mWindQuadBuffer->release();
-
-    mWindQuadVAO = new QOpenGLVertexArrayObject(this);
-    ERROR_IF_FALSE(mWindQuadVAO->create(), "Couldn't create mWindQuadVAO.");
-
-    mWindQuadVAO->bind();
-    mWindQuadProgram.enableAllAttributeArrays();
-
-    mWindQuadBuffer->bind();
-    mWindQuadProgram.setPositionBuffer(0, 4 * sizeof(float));
-    mWindQuadProgram.setTexCoordBuffer(2 * sizeof(float), 4 * sizeof(float));
-    mWindQuadBuffer->release();
-    mWindQuadVAO->release();
+    /* Creates the variables for drawing a quad for visualizing the wind. */
+    createWindQuadData();
 
 
     if (checkGLErrors())
@@ -161,64 +104,12 @@ void MainWindow::paintGL()
     updateWind();
     updateGrassWindOffsets();
 
-    ERROR_IF_NOT_SUCCESS(clFinish(mCLWrapper->queue()), "Failed to finish OpenCL commands.");
+    ERROR_IF_NOT_SUCCESS(clFinish(mCLWrapper->queue()), "Failed to finish OpenCL commands in paintGL().");
 
-    glViewport(0, 0, width(), height());
+    drawGrass();
+    drawWindQuad();
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    QMatrix4x4 perspectiveMat;
-    perspectiveMat.perspective(90, (float) width() / height(), 0.1, 250);
-    QMatrix4x4 viewMat = getViewMatrix();
-
-    ERROR_IF_FALSE(mGrassProgram.bind(), "Failed to bind program in paint call.");
-
-    mGrassProgram.setMVP(perspectiveMat * viewMat);
-    mGrassProgram.setGrassTextureUnit(0);
-
-    glActiveTexture(GL_TEXTURE0);
-    mGrassTexture->bind(); // binds to texture unit 0
-
-    mGrassVAO->bind();
-    glDrawArraysInstanced(GL_TRIANGLES, 0, mNumVerticesPerBlade, mNumBlades);
-    mGrassVAO->release();
-
-    mGrassTexture->release();
-
-    mGrassProgram.release();
-
-    /* TODO:
-        I need to create a special program just for drawing a textured quad.
-        I need to actually draw a quad, which MAY involve creating a VAO. SMH!
-            -- Steps:
-                1) Make buffer.
-                2) Make VAO.
-                3) Enable vertex arrays.
-                4) Bind buffer.
-                5) Set vertex attribute buffer.
-        After that, I should clean up the wind texture initialization and
-        all the wind program code (the CL side and the host side). */
-
-
-    if (checkGLErrors())
-        qDebug() << "^ in paintGL() after drawing grass";
-
-    ERROR_IF_FALSE(mWindQuadProgram.bind(), "Couldn't bind mWindQuadProgram.");
-
-    mWindQuadProgram.setWindSpeedTextureUnit(0);
-    glActiveTexture(GL_TEXTURE0);
-    mWindVelocities->bind();
-
-    mWindQuadVAO->bind();
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    mWindQuadVAO->release();
-
-    mWindQuadProgram.release();
-
-    if (checkGLErrors())
-        qDebug() << "^ in paintGL() at end";
-
-    // Schedule another update.
+    /* Schedule another update. */
     update();
 }
 
@@ -229,7 +120,7 @@ void MainWindow::mouseMoveEvent(QMouseEvent *evt)
     {
         if (evt->modifiers() == Qt::ShiftModifier)
         {
-            // Change offset if the shift key is pressed.
+            /* Change offset if the shift key is pressed. */
             QVector2D delta(evt->pos() - mDragStart);
 
             QVector4D offset(-delta.x(), delta.y(), 0, 1);
@@ -246,7 +137,7 @@ void MainWindow::mouseMoveEvent(QMouseEvent *evt)
         }
         else
         {
-            // Change angles if the shift key is not pressed.
+            /* Change angles if the shift key is not pressed. */
             mCameraPitch = mDragPitchStart + (evt->y() - mDragStart.y()) / 5.0;
             mCameraYaw = mDragYawStart + (evt->x() - mDragStart.x()) / 5.0;
         }
@@ -276,6 +167,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *evt)
 
 void MainWindow::wheelEvent(QWheelEvent *evt)
 {
+    /* Exponential zooming works like the user expects. */
     mCameraZoom *= pow(1.1, evt->angleDelta().y() * mCameraZoomSensitivity);
 }
 
@@ -283,7 +175,7 @@ void MainWindow::keyReleaseEvent(QKeyEvent *evt)
 {
     if (evt->key() == Qt::Key_F)
     {
-        // Toggle force.
+        /* Toggle force. */
         MyCLImage_RGBA32F *tmp = mCurForce;
         mCurForce = mNextForce;
         mNextForce = tmp;
@@ -296,7 +188,7 @@ bool MainWindow::checkGLErrors()
 
     GLenum error;
     while ((error = glGetError()) != GL_NO_ERROR)
-    {
+    {   // TODO: Move the switch to a common header.
         switch (error) {
         case GL_INVALID_OPERATION:
             qDebug() << "Invalid operation.";
@@ -317,6 +209,7 @@ bool MainWindow::checkGLErrors()
 
 void MainWindow::beginDrag(QMouseEvent *evt)
 {
+    /* Resets the drag. This MAY happen during a drag. */
     mDragging = true;
     mDragStart = evt->pos();
     mDragPitchStart = mCameraPitch;
@@ -345,9 +238,59 @@ QMatrix4x4 MainWindow::getViewMatrix() const
     return mat;
 }
 
+void MainWindow::drawGrass()
+{
+    glViewport(0, 0, width(), height());
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    QMatrix4x4 perspectiveMat;
+    perspectiveMat.perspective(90, (float) width() / height(), 0.1, 250);
+    QMatrix4x4 viewMat = getViewMatrix();
+
+    ERROR_IF_FALSE(mGrassProgram.bind(), "Failed to bind program in paint call.");
+
+    mGrassProgram.setMVP(perspectiveMat * viewMat);
+    mGrassProgram.setGrassTextureUnit(0);
+
+    glActiveTexture(GL_TEXTURE0);
+    mGrassTexture->bind(); // binds to texture unit 0
+
+    mGrassVAO->bind();
+    glDrawArraysInstanced(GL_TRIANGLES, 0, mNumVerticesPerBlade, mNumBlades);
+    mGrassVAO->release();
+
+    mGrassTexture->release();
+
+    mGrassProgram.release();
+
+
+    if (checkGLErrors())
+        qDebug() << "^ in drawGrass()";
+}
+
+void MainWindow::drawWindQuad()
+{
+    ERROR_IF_FALSE(mWindQuadProgram.bind(), "Couldn't bind mWindQuadProgram.");
+
+    mWindQuadProgram.setWindSpeedTextureUnit(0);
+    glActiveTexture(GL_TEXTURE0);
+    mWindVelocities->bind();
+
+    mWindQuadVAO->bind();
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    mWindQuadVAO->release();
+
+    mWindQuadProgram.release();
+
+    if (checkGLErrors())
+        qDebug() << "^ in drawWindQuad()";
+}
+
 void MainWindow::updateWind()
 {
-
+    /* TODO These parameters might not work as you'd expect. I will need
+        to tweak the wind update program. */
     float gridSize = 0.15;
     float dt = 0.1;
     float viscosity = 0.00004;
@@ -373,6 +316,9 @@ void MainWindow::updateGrassWindOffsets()
     err = clEnqueueAcquireGLObjects(mCLWrapper->queue(), 1, &mGrassWindPositions, 0, NULL, NULL);
     ERROR_IF_NOT_SUCCESS(err, "Failed to acquire a GL buffer for OpenCL use.");
 
+    /* Compute the time in seconds since the application started.
+        The absolute time does not matter---we just need a relative
+        time to animate the grass blade vibrations. */
     cl_float time = mApplicationStartTime.msecsTo(QTime::currentTime()) / 1000.0;
 
     ERROR_IF_FALSE(mWindProgram->reactToWind2(mGrassWindPositions,
@@ -389,10 +335,13 @@ void MainWindow::updateGrassWindOffsets()
 
 void MainWindow::updateGrassModel(float bendAngle)
 {
-    QVector<float> model = Grass::makeGrassModel(15, 0.2, 2, bendAngle);
-    Q_ASSERT( mNumVerticesPerBlade == 15 * 6 );
+    const size_t numSegments = 15;
 
-    // This assumes that the model takes the same amount of space as before.
+    Q_ASSERT( mNumVerticesPerBlade == numSegments * 6 );
+    QVector<float> model = Grass::makeGrassModel(numSegments, 0.2, 2, bendAngle);
+
+    /* This assumes that the model takes the same amount of space as before
+        it was changed. */
     mGrassBladeModelBuffer->bind();
     mGrassBladeModelBuffer->write(0, model.data(), sizeof(float) * model.size());
     mGrassBladeModelBuffer->release();
@@ -418,7 +367,6 @@ void MainWindow::createGrassModel(float bendAngle)
 
 void MainWindow::createGrassInstanceData()
 {
-
     const int bladesX = 128;
     const int bladesY = 128;
 
@@ -576,4 +524,82 @@ void MainWindow::createCLBuffersFromGLBuffers()
                                                mGrassBladeWindPositionBuffer->bufferId(),
                                                &err);
     ERROR_IF_NOT_SUCCESS(err, "Couldn't share grass wind positions buffer.");
+}
+
+
+void MainWindow::createWindData()
+{
+    /* Create an empty OpenGL texture with 4 floats per pixel. This
+        will be used to store wind velocities. It appears that the
+        texture is automatically 0-initialized, but I do not know if
+        this is guaranteed. */
+    mWindVelocities = new QOpenGLTexture(QOpenGLTexture::Target2D);
+    ERROR_IF_FALSE(mWindVelocities->create(), "Couldn't create wind texture.");
+    mWindVelocities->setFormat(QOpenGLTexture::RGBA32F);
+    mWindVelocities->setMagnificationFilter(QOpenGLTexture::Nearest);
+    mWindVelocities->setMinificationFilter(QOpenGLTexture::Nearest);
+    mWindVelocities->setAutoMipMapGenerationEnabled(false);
+    mWindVelocities->setSize(128, 128);
+    mWindVelocities->allocateStorage();
+
+    /* Create the CL images. Once again, I am not sure if 0-initialization
+        is guaranteed. */
+    ERROR_IF_FALSE(mWindVelocities1.createShared(mCLWrapper->context(), *mWindVelocities), "Failed to create a CL image.");
+    ERROR_IF_FALSE(mForces1.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
+    ERROR_IF_FALSE(mForces2.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
+    ERROR_IF_FALSE(mPressure.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
+    ERROR_IF_FALSE(mTemp1.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
+    ERROR_IF_FALSE(mTemp2.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
+
+    /* Initialize forces. */
+    mForces1.acquire(mCLWrapper->queue());
+    mForces1.map(mCLWrapper->queue());
+    for (int x = 55; x < 73; ++x)
+        mForces1.set(x, 1, 8, 8, 0, 0);
+    mForces1.unmap(mCLWrapper->queue());
+    mForces1.release(mCLWrapper->queue());
+
+//    mForces2.acquire(mCLWrapper->queue());
+//    mForces2.map(mCLWrapper->queue());
+//    for (int y = 20; y < 30; ++y)
+//        mForces2.set(30, y, -10, 0, 0, 0);
+//    mForces2.unmap(mCLWrapper->queue());
+//    mForces2.release(mCLWrapper->queue());
+
+    mCurForce = &mForces2;
+    mNextForce = &mForces1;
+}
+
+
+void MainWindow::createWindQuadData()
+{
+    ERROR_IF_FALSE(mWindQuadProgram.create(), "Failed to create wind quad program.");
+
+    float windQuad[] = {
+        0.5f, 0.5f,   1.0f, 0.0f,
+        1.0f, 0.5f,   0.0f, 0.0f,
+        1.0f, 1.0f,   0.0f, 1.0f,
+
+        0.5f, 0.5f,   1.0f, 0.0f,
+        1.0f, 1.0f,   0.0f, 1.0f,
+        0.5f, 1.0f,   1.0f, 1.0f
+    };
+
+    mWindQuadBuffer = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+    ERROR_IF_FALSE(mWindQuadBuffer->create(), "Couldn't create mWindQuadBuffer.");
+    ERROR_IF_FALSE(mWindQuadBuffer->bind(), "Couldn't bind mWindQuadBuffer.");
+    mWindQuadBuffer->allocate(windQuad, sizeof(windQuad));
+    mWindQuadBuffer->release();
+
+    mWindQuadVAO = new QOpenGLVertexArrayObject(this);
+    ERROR_IF_FALSE(mWindQuadVAO->create(), "Couldn't create mWindQuadVAO.");
+
+    mWindQuadVAO->bind();
+    mWindQuadProgram.enableAllAttributeArrays();
+
+    mWindQuadBuffer->bind();
+    mWindQuadProgram.setPositionBuffer(0, 4 * sizeof(float));
+    mWindQuadProgram.setTexCoordBuffer(2 * sizeof(float), 4 * sizeof(float));
+    mWindQuadBuffer->release();
+    mWindQuadVAO->release();
 }

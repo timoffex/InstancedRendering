@@ -1,9 +1,9 @@
 <RCC>
-    <qresource prefix="/shaders">
-        <file>grass.vert</file>
-        <file>grass.frag</file>
-        <file>texturedNDC.vert</file>
-        <file>windQuad.frag</file>
+    <qresource prefix="/">
+        <file>shaders/grass.frag</file>
+        <file>shaders/grass.vert</file>
+        <file>shaders/texturedNDC.vert</file>
+        <file>shaders/windQuad.frag</file>
     </qresource>
     <qresource prefix="/compute">
         <file>grassWindReact.cl</file>

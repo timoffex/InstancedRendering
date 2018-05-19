@@ -2,8 +2,8 @@
 #define MAINWINDOW_H
 
 
-#include "myclwrapper.h"
-#include "myclimage_rgba32f.h"
+#include "cl_interface/myclwrapper.h"
+#include "cl_interface/myclimage_rgba32f.h"
 #include "grasswindclprogram.h"
 #include "grassglprogram.h"
 #include "windquadglprogram.h"
@@ -52,6 +52,11 @@ private:
     void initializeCamera();
     QMatrix4x4 getViewMatrix() const;
 
+
+    void drawGrass();
+    void drawWindQuad();
+
+
     void updateWind();
     void updateGrassWindOffsets();
 
@@ -61,6 +66,8 @@ private:
     void createGrassVAO();
 
     void createCLBuffersFromGLBuffers();
+    void createWindData();
+    void createWindQuadData();
 
     /// Stores the data for a single grass blade.
     QOpenGLBuffer *mGrassBladeModelBuffer;

@@ -38,10 +38,11 @@ SOURCES += \
     src/imagetestwindow.cpp \
     src/main.cpp \
     src/mainwindow.cpp \
-    src/myclimage_rgba32f.cpp \
-    src/myclimagedescriptor.cpp \
-    src/myclwrapper.cpp \
-    src/windquadglprogram.cpp
+    src/cl_interface/myclimage_rgba32f.cpp \
+    src/cl_interface/myclimagedescriptor.cpp \
+    src/cl_interface/myclwrapper.cpp \
+    src/windquadglprogram.cpp \
+    src/cl_interface/myclerrors.cpp
 
 HEADERS += \
     src/grass.h \
@@ -49,18 +50,20 @@ HEADERS += \
     src/grasswindclprogram.h \
     src/imagetestwindow.h \
     src/mainwindow.h \
-    src/myclimage_rgba32f.h \
-    src/myclimagedescriptor.h \
-    src/myclwrapper.h \
-    src/windquadglprogram.h
+    src/cl_interface/myclimage_rgba32f.h \
+    src/cl_interface/myclimagedescriptor.h \
+    src/cl_interface/myclwrapper.h \
+    src/windquadglprogram.h \
+    src/cl_interface/myclerrors.h \
+    src/cl_interface/include_opencl.h
 
 DISTFILES += \
     src/grass_blade.jpg \
     src/grassWindReact.cl \
-    src/grass.frag \
-    src/windQuad.frag \
-    src/grass.vert \
-    src/texturedNDC.vert
+    src/shaders/grass.frag \
+    src/shaders/windQuad.frag \
+    src/shaders/grass.vert \
+    src/shaders/texturedNDC.vert
 
 RESOURCES += \
     src/assets.qrc \
