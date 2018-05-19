@@ -108,12 +108,14 @@ private:
     QOpenGLBuffer *mWindQuadBuffer;
     QOpenGLVertexArrayObject *mWindQuadVAO;
 
+
+    /* Grass simulation variables for the OpenCL side. */
     cl_mem mGrassWindPositions;         /// "position" of each grass blade (used for wind effect)
-    cl_mem mGrassPeriodOffsets;        /// "velocity" of each grass blade (used for wind effect)
+    cl_mem mGrassPeriodOffsets;         /// "velocity" of each grass blade (used for wind effect)
     cl_mem mGrassNormalizedPositions;   /// position of each grass blade, with each coordinate in (0,1)
 
 
-    /* TODO */
+    /* Wind simulation variables. */
     QOpenGLTexture *mWindVelocities;
     MyCLImage_RGBA32F mWindVelocities1;
     MyCLImage_RGBA32F mForces1;
