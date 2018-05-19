@@ -29,8 +29,7 @@ MainWindow::~MainWindow()
 
 static void ERROR(const char *msg)
 {
-    qDebug() << "ERROR: " << msg;
-    exit(1);
+    qFatal("ERROR: %s", msg);
 }
 
 static void ERROR_IF_FALSE(bool cond, const char *msg)
