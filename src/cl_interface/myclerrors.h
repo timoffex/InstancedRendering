@@ -15,5 +15,8 @@ std::string parseReleaseError(cl_int err);
 std::string parseMapImageError(cl_int err);
 std::string parseUnmapObjectError(cl_int err);
 
+std::string parseBuildReturnCode(cl_int err);
+std::string parseEnqueueKernelReturnCode(cl_int err);
+
 
 #endif // MYCLERRORS_H
