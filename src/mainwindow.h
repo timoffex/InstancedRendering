@@ -152,6 +152,9 @@ private:
 
     /// Used to keep track of time.
     QTime mApplicationStartTime;
+
+    QTime mLastFrameStartTime;
+    QTime mCurrentFrameStartTime;
 };
 
 #endif // MAINWINDOW_H

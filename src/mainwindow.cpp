@@ -105,6 +105,8 @@ void MainWindow::initializeGL()
     // TODO What if this window is destroyed before the context?
     connect(QOpenGLContext::currentContext(), &QOpenGLContext::aboutToBeDestroyed, this, &MainWindow::releaseAllResources);
 
+
+    mCurrentFrameStartTime = QTime::currentTime();
     mInitialized = true;
 }
 
@@ -118,6 +120,9 @@ void MainWindow::resizeGL(int w, int h)
 void MainWindow::paintGL()
 {
     Q_ASSERT( mInitialized );
+
+    mLastFrameStartTime = mCurrentFrameStartTime;
+    mCurrentFrameStartTime = QTime::currentTime();
 
     updateWind();
     updateGrassWindOffsets();
@@ -364,9 +369,9 @@ void MainWindow::updateWind()
 {
     /* TODO These parameters might not work as you'd expect. I will need
         to tweak the wind update program. */
-    float gridSize = 0.15;
-    float dt = 0.1;
-    float viscosity = 0.00004;
+    float gridSize = 0.03;
+    float dt = mLastFrameStartTime.msecsTo(mCurrentFrameStartTime) / 1000.0;
+    float viscosity = -1; /* This means the viscosity term is not computed. */
     float density = 3;
 
     ERROR_IF_FALSE(mWindVelocitiesCL.acquire(mCLWrapper->queue()), "Failed to acquire a CL image.");
@@ -392,7 +397,7 @@ void MainWindow::updateGrassWindOffsets()
     /* Compute the time in seconds since the application started.
         The absolute time does not matter---we just need a relative
         time to animate the grass blade vibrations. */
-    cl_float time = mApplicationStartTime.msecsTo(QTime::currentTime()) / 1000.0;
+    cl_float time = mApplicationStartTime.msecsTo(mCurrentFrameStartTime) / 1000.0;
 
     ERROR_IF_FALSE(mWindProgram->reactToWind2(mGrassWindPositions,
                                               mGrassPeriodOffsets,
@@ -628,7 +633,7 @@ void MainWindow::createWindData()
     mForces1.acquire(mCLWrapper->queue());
     mForces1.map(mCLWrapper->queue());
     for (int x = 55; x < 73; ++x)
-        mForces1.set(x, 1, 8, 8, 0, 0);
+        mForces1.set(x, 5, 24, 48, 0, 0);
     mForces1.unmap(mCLWrapper->queue());
     mForces1.release(mCLWrapper->queue());
 

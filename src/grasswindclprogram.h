@@ -28,6 +28,7 @@ public:
                      cl_uint numBlades,
                      cl_float dt);
 
+
     bool reactToWind2(cl_mem grassWindOffsets,
                       cl_mem grassPeriodOffsets,
                       cl_mem grassNormalizedPositions,
@@ -47,7 +48,8 @@ public:
                     unsigned int imageHeight);
 
     /// Updates the wind speeds by approximating Navier Stokes
-    /// for incompressible fluids.
+    /// for incompressible fluids. If viscosity is < 0, the
+    /// diffusion term is not computed.
     bool updateWindNew(cl_image windSpeeds,
                        cl_image forces,
                        cl_float gridSize,

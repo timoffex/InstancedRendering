@@ -429,25 +429,28 @@ bool GrassWindCLProgram::updateWindNew(cl_image windSpeeds,
     }
 
 
-    /* STEP (2) => temp1 will contain diffused wind speeds*/
-    cl_float hh_vdt = gridSize * gridSize / (viscosity * dt);
-    for (int iteration = 0; iteration < 30; ++iteration)
+    if (viscosity > 0)
     {
-        cl_image *t1 = &temp1;
-        cl_image *t2 = &temp2;
-
-        for (int subIteration = 0; subIteration < 2; ++subIteration)
+        /* STEP (2) => temp1 will contain diffused wind speeds*/
+        cl_float hh_vdt = gridSize * gridSize / (viscosity * dt);
+        for (int iteration = 0; iteration < 30; ++iteration)
         {
-            if (!jacobi(*t1, *t1, *t2, hh_vdt, 4 + hh_vdt))
-            {
-                qDebug() << "Failure in step 2i of wind update.";
-                return false;
-            }
+            cl_image *t1 = &temp1;
+            cl_image *t2 = &temp2;
 
-            // Swap pointers.
-            cl_image *tt = t1;
-            t1 = t2;
-            t2 = tt;
+            for (int subIteration = 0; subIteration < 2; ++subIteration)
+            {
+                if (!jacobi(*t1, *t1, *t2, hh_vdt, 4 + hh_vdt))
+                {
+                    qDebug() << "Failure in step 2i of wind update.";
+                    return false;
+                }
+
+                // Swap pointers.
+                cl_image *tt = t1;
+                t1 = t2;
+                t2 = tt;
+            }
         }
     }
 
