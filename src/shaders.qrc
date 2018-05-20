@@ -7,5 +7,6 @@
     </qresource>
     <qresource prefix="/compute">
         <file>grassWindReact.cl</file>
+        <file>fluidSimulation.cl</file>
     </qresource>
 </RCC>
