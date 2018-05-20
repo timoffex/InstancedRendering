@@ -625,9 +625,9 @@ void MainWindow::createWindData()
     ERROR_IF_FALSE(mWindVelocitiesCL.createShared(mCLWrapper->context(), *mWindVelocities), "Failed to create a CL image.");
     ERROR_IF_FALSE(mForces1.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height(), CL_RG), "Failed to create a CL image.");
     ERROR_IF_FALSE(mForces2.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height(), CL_RG), "Failed to create a CL image.");
-    ERROR_IF_FALSE(mPressure.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
-    ERROR_IF_FALSE(mTemp1.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
-    ERROR_IF_FALSE(mTemp2.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
+    ERROR_IF_FALSE(mPressure.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height(), CL_R), "Failed to create a CL image.");
+    ERROR_IF_FALSE(mTemp1.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height(), CL_RG), "Failed to create a CL image.");
+    ERROR_IF_FALSE(mTemp2.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height(), CL_RG), "Failed to create a CL image.");
 
     /* Initialize forces. */
     mForces1.acquire(mCLWrapper->queue());
