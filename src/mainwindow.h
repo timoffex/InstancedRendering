@@ -4,6 +4,7 @@
 
 #include "cl_interface/myclwrapper.h"
 #include "cl_interface/myclimage_rgba32f.h"
+#include "cl_interface/myclimage.h"
 #include "grasswindclprogram.h"
 #include "grassglprogram.h"
 #include "windquadglprogram.h"
@@ -126,14 +127,14 @@ private:
     /* Wind simulation variables. */
     QOpenGLTexture *mWindVelocities;
     MyCLImage_RGBA32F mWindVelocitiesCL;
-    MyCLImage_RGBA32F mForces1;
-    MyCLImage_RGBA32F mForces2;
+    MyCLImage2D mForces1;
+    MyCLImage2D mForces2;
     MyCLImage_RGBA32F mPressure;
     MyCLImage_RGBA32F mTemp1;
     MyCLImage_RGBA32F mTemp2;
 
-    MyCLImage_RGBA32F *mCurForce;
-    MyCLImage_RGBA32F *mNextForce;
+    MyCLImage2D *mCurForce;
+    MyCLImage2D *mNextForce;
 
     /* Camera variables. */
     QVector3D mCameraOffset;

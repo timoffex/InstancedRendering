@@ -199,7 +199,7 @@ void MainWindow::keyReleaseEvent(QKeyEvent *evt)
     if (evt->key() == Qt::Key_F)
     {
         /* Toggle force. */
-        MyCLImage_RGBA32F *tmp = mCurForce;
+        MyCLImage2D *tmp = mCurForce;
         mCurForce = mNextForce;
         mNextForce = tmp;
     }
@@ -246,12 +246,12 @@ void MainWindow::releaseCLResources()
 
     mWindProgram->release();
 
-    mWindVelocitiesCL.release();
-    mForces1.release();
-    mForces2.release();
-    mPressure.release();
-    mTemp1.release();
-    mTemp2.release();
+    mWindVelocitiesCL.destroy();
+    mForces1.destroy();
+    mForces2.destroy();
+    mPressure.destroy();
+    mTemp1.destroy();
+    mTemp2.destroy();
 
     /* To avoid accidentally trying to use an image that
         no longer exists. */
@@ -623,8 +623,8 @@ void MainWindow::createWindData()
     /* Create the CL images. Once again, I am not sure if 0-initialization
         is guaranteed. */
     ERROR_IF_FALSE(mWindVelocitiesCL.createShared(mCLWrapper->context(), *mWindVelocities), "Failed to create a CL image.");
-    ERROR_IF_FALSE(mForces1.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
-    ERROR_IF_FALSE(mForces2.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
+    ERROR_IF_FALSE(mForces1.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height(), CL_RG), "Failed to create a CL image.");
+    ERROR_IF_FALSE(mForces2.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height(), CL_RG), "Failed to create a CL image.");
     ERROR_IF_FALSE(mPressure.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
     ERROR_IF_FALSE(mTemp1.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
     ERROR_IF_FALSE(mTemp2.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height()), "Failed to create a CL image.");
@@ -633,16 +633,16 @@ void MainWindow::createWindData()
     mForces1.acquire(mCLWrapper->queue());
     mForces1.map(mCLWrapper->queue());
     for (int x = 55; x < 73; ++x)
-        mForces1.set(x, 5, 24, 48, 0, 0);
+        mForces1.setf(x, 5, 24, 48, 0, 0);
     mForces1.unmap(mCLWrapper->queue());
     mForces1.release(mCLWrapper->queue());
 
 //    mForces2.acquire(mCLWrapper->queue());
 //    mForces2.map(mCLWrapper->queue());
 //    for (int y = 20; y < 30; ++y)
-//        mForces2.set(30, y, -10, 0, 0, 0);
+//        mForces2.setf(30, y, -10, 0, 0, 0);
 //    mForces2.unmap(mCLWrapper->queue());
-//    mForces2.release(mCLWrapper->queue());
+//    mForces2.releaseQueue(mCLWrapper->queue());
 
     mCurForce = &mForces2;
     mNextForce = &mForces1;

@@ -26,7 +26,7 @@ public:
     bool createShared(cl_context context, const QOpenGLTexture &texture);
 
     /// Releases the image object.
-    void release();
+    void destroy();
 
     /// Returns the associated cl_image.
     cl_image image() const;

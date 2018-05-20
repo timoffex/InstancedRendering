@@ -436,7 +436,7 @@ bool GrassWindCLProgram::updateWindNew(cl_image windSpeeds,
         for (int iteration = 0; iteration < 30; ++iteration)
         {
             cl_image *t1 = &temp1;
-            cl_image *t2 = &temp2;
+            cl_image *t2 = &windSpeeds;
 
             for (int subIteration = 0; subIteration < 2; ++subIteration)
             {
@@ -515,7 +515,6 @@ bool GrassWindCLProgram::updateWindNew(cl_image windSpeeds,
 
 
     /* STEP (6) enforce boundary conditions */
-//    addScaled(temp1, temp2, 0, windSpeeds);
     if (!velocityBoundary(temp1, windSpeeds))
     {
         qDebug() << "Failure running velocityBoundary.";
@@ -528,6 +527,7 @@ bool GrassWindCLProgram::updateWindNew(cl_image windSpeeds,
         return false;
     }
 
+    // TODO: Create a copy() method.
     if (!addScaled(temp1, temp1, 0, pressure))
     {
         qDebug() << "Failure running addScaled.";

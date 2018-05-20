@@ -82,7 +82,7 @@ bool MyCLImage_RGBA32F::createShared(cl_context context, const QOpenGLTexture &t
     return true;
 }
 
-void MyCLImage_RGBA32F::release()
+void MyCLImage_RGBA32F::destroy()
 {
     clReleaseMemObject(mImage);
     mCreated = false;

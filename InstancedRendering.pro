@@ -42,7 +42,9 @@ SOURCES += \
     src/cl_interface/myclimagedescriptor.cpp \
     src/cl_interface/myclwrapper.cpp \
     src/windquadglprogram.cpp \
-    src/cl_interface/myclerrors.cpp
+    src/cl_interface/myclerrors.cpp \
+    src/fluid2dsimulation.cpp \
+    src/cl_interface/myclimage.cpp
 
 HEADERS += \
     src/grass.h \
@@ -55,7 +57,9 @@ HEADERS += \
     src/cl_interface/myclwrapper.h \
     src/windquadglprogram.h \
     src/cl_interface/myclerrors.h \
-    src/cl_interface/include_opencl.h
+    src/cl_interface/include_opencl.h \
+    src/fluid2dsimulation.h \
+    src/cl_interface/myclimage.h
 
 DISTFILES += \
     src/grass_blade.jpg \
