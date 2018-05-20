@@ -120,7 +120,7 @@ private:
 
 
     /* Grass simulation variables for the OpenCL side. */
-    cl_mem mGrassWindPositions;         /// "position" of each grass blade (used for wind effect)
+    cl_mem mGrassWindPositions;         /// "offset" of each grass blade (used for wind effect)
     cl_mem mGrassPeriodOffsets;         /// "velocity" of each grass blade (used for wind effect)
     cl_mem mGrassNormalizedPositions;   /// position of each grass blade, with each coordinate in (0,1)
 
