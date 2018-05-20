@@ -92,7 +92,7 @@ void MainWindow::initializeGL()
     createCLBuffersFromGLBuffers();
 
     /* Creates the variables needed to simulate wind. */
-    createWindData();
+    createWindSimulation();
 
     /* Creates the variables for drawing a quad for visualizing the wind. */
     createWindQuadData();
@@ -246,7 +246,7 @@ void MainWindow::releaseCLResources()
 
     mWindProgram->release();
 
-    mFluidSimulation->release();
+    mWindSimulation->release();
     mForces1.destroy();
     mForces2.destroy();
 
@@ -368,7 +368,7 @@ void MainWindow::updateWind()
         to tweak the wind update program. */
     float dt = mLastFrameStartTime.msecsTo(mCurrentFrameStartTime) / 1000.0;
 
-    ERROR_IF_FALSE(mFluidSimulation->update(dt, *mCurForce),
+    ERROR_IF_FALSE(mWindSimulation->update(dt, *mCurForce),
                    "Failed to update wind.");
 }
 
@@ -387,7 +387,7 @@ void MainWindow::updateGrassWindOffsets()
     ERROR_IF_FALSE(mWindProgram->reactToWind2(mGrassWindPositions,
                                               mGrassPeriodOffsets,
                                               mGrassNormalizedPositions,
-                                              mFluidSimulation->velocities().image(),
+                                              mWindSimulation->velocities().image(),
                                               mNumBlades,
                                               time),
                    "Failed to run wind program");
@@ -590,10 +590,8 @@ void MainWindow::createCLBuffersFromGLBuffers()
 }
 
 
-void MainWindow::createWindData()
+void MainWindow::createWindSimulation()
 {
-
-
     /* Create an empty OpenGL texture with 4 floats per pixel. This
         will be used to store wind velocities. It appears that the
         texture is automatically 0-initialized, but I do not know if
@@ -607,9 +605,10 @@ void MainWindow::createWindData()
     mWindVelocities->setSize(128, 128);
     mWindVelocities->allocateStorage();
 
+    /* Create the fluid simulation object. */
     Fluid2DSimulationConfig config(mWindVelocities->width(), mWindVelocities->height(), mWindProgram, 3, 0.03f);
-    mFluidSimulation = new Fluid2DSimulation(config);
-    ERROR_IF_FALSE(mFluidSimulation->create(mCLWrapper, mWindVelocities), "Couldn't crate fluid simulation.");
+    mWindSimulation = new Fluid2DSimulation(config);
+    ERROR_IF_FALSE(mWindSimulation->create(mCLWrapper, mWindVelocities), "Couldn't crate fluid simulation.");
 
     /* Create the CL images. Once again, I am not sure if 0-initialization
         is guaranteed. */

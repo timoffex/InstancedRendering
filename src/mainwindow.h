@@ -72,7 +72,7 @@ private:
     void createGrassVAO();
 
     void createCLBuffersFromGLBuffers();
-    void createWindData();
+    void createWindSimulation();
     void createWindQuadData();
 
 
@@ -126,7 +126,7 @@ private:
 
 
     /* Wind simulation variables. */
-    Fluid2DSimulation *mFluidSimulation;
+    Fluid2DSimulation *mWindSimulation;
 
     QOpenGLTexture *mWindVelocities;
 

@@ -107,7 +107,7 @@ void MyCLImage2D::destroy()
     }
 }
 
-cl_image MyCLImage2D::image() const
+const cl_image &MyCLImage2D::image() const
 {
     Q_ASSERT( mCreated );
     return mImage;

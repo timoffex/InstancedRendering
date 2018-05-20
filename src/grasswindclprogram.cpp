@@ -123,7 +123,7 @@ bool GrassWindCLProgram::create(MyCLWrapper *wrapper)
     /* Steps:
         1) Create a program using clCreateProgramWithSource()
         2) Build the program using clBuildProgram()
-        3) Create the kernel with clCreateKernel() (a program may
+        3) Create the kernels with clCreateKernel() (a program may
             contain multiple kernels)
     */
 
@@ -391,6 +391,9 @@ bool GrassWindCLProgram::updateWindNew(cl_image windSpeeds,
                                        cl_image temp1,
                                        cl_image temp2)
 {
+    Q_ASSERT( mCreated );
+
+
     cl_int err;
 
     size_t width, height;
@@ -669,7 +672,7 @@ bool GrassWindCLProgram::advect(cl_image quantity,
     err  = clSetKernelArg(mAdvectKernel, 0, sizeof(cl_image), &quantity);
     err |= clSetKernelArg(mAdvectKernel, 1, sizeof(cl_image), &velocity);
     err |= clSetKernelArg(mAdvectKernel, 2, sizeof(cl_image), &output);
-    err |= clSetKernelArg(mAdvectKernel, 3, sizeof(cl_image), &dt_h);
+    err |= clSetKernelArg(mAdvectKernel, 3, sizeof(cl_float), &dt_h);
 
     if (err != CL_SUCCESS)
     {

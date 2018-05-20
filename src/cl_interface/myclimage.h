@@ -26,7 +26,7 @@ public:
 
 
     /// Returns the associated cl_image.
-    cl_image image() const;
+    const cl_image &image() const;
 
     /// Returns the format of the image.
     cl_image_format format() const;
@@ -63,6 +63,9 @@ public:
 
     /// The size in bytes of one component (of one pixel).
     size_t componentSize() const;
+
+    size_t width() const { return mWidth; }
+    size_t height() const { return mHeight; }
 private:
     bool mCreated;
     bool mFromGLTexture;
