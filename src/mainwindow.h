@@ -4,6 +4,8 @@
 
 #include "cl_interface/myclwrapper.h"
 #include "cl_interface/myclimage.h"
+
+#include "fluid2dsimulation.h"
 #include "grasswindclprogram.h"
 #include "grassglprogram.h"
 #include "windquadglprogram.h"
@@ -124,13 +126,12 @@ private:
 
 
     /* Wind simulation variables. */
+    Fluid2DSimulation *mFluidSimulation;
+
     QOpenGLTexture *mWindVelocities;
-    MyCLImage2D mWindVelocitiesCL;
+
     MyCLImage2D mForces1;
     MyCLImage2D mForces2;
-    MyCLImage2D mPressure;
-    MyCLImage2D mTemp1;
-    MyCLImage2D mTemp2;
 
     MyCLImage2D *mCurForce;
     MyCLImage2D *mNextForce;

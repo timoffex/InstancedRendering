@@ -4,7 +4,7 @@ Fluid2DSimulation::Fluid2DSimulation(Fluid2DSimulationConfig config)
     : mInitialized(false),
       mConfig(config)
 {
-
+    mFluidProgram = mConfig.windProgTemp;
 }
 
 Fluid2DSimulation::~Fluid2DSimulation()
@@ -49,7 +49,10 @@ bool Fluid2DSimulation::update(float dtSeconds)
 
 bool Fluid2DSimulation::update(float dtSeconds, MyCLImage2D &forces)
 {
-    return mFluidProgram->updateWindNew(mVelocities.image(),
+    if (!mVelocities.acquire(mCLWrapper->queue())) return false;
+    if (!mPressure.acquire(mCLWrapper->queue())) return false;
+
+    if (!mFluidProgram->updateWindNew(mVelocities.image(),
                                         forces.image(),
                                         mConfig.gridSquareSize,
                                         dtSeconds,
@@ -57,7 +60,16 @@ bool Fluid2DSimulation::update(float dtSeconds, MyCLImage2D &forces)
                                         mConfig.hasViscosity ? mConfig.viscosity : -1,
                                         mPressure.image(),
                                         mTemp2F_1.image(),
-                                        mTemp2F_2.image());
+                                        mTemp2F_2.image()))
+    {
+        qDebug() << "Failed in wind update.";
+        return false;
+    }
+
+    if (!mPressure.release(mCLWrapper->queue())) return false;
+    if (!mVelocities.release(mCLWrapper->queue())) return false;
+
+    return true;
 }
 
 

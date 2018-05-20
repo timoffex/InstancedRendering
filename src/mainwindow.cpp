@@ -246,12 +246,9 @@ void MainWindow::releaseCLResources()
 
     mWindProgram->release();
 
-    mWindVelocitiesCL.destroy();
+    mFluidSimulation->release();
     mForces1.destroy();
     mForces2.destroy();
-    mPressure.destroy();
-    mTemp1.destroy();
-    mTemp2.destroy();
 
     /* To avoid accidentally trying to use an image that
         no longer exists. */
@@ -369,22 +366,10 @@ void MainWindow::updateWind()
 {
     /* TODO These parameters might not work as you'd expect. I will need
         to tweak the wind update program. */
-    float gridSize = 0.03;
     float dt = mLastFrameStartTime.msecsTo(mCurrentFrameStartTime) / 1000.0;
-    float viscosity = -1; /* This means the viscosity term is not computed. */
-    float density = 3;
 
-    ERROR_IF_FALSE(mWindVelocitiesCL.acquire(mCLWrapper->queue()), "Failed to acquire a CL image.");
-
-    ERROR_IF_FALSE(mWindProgram->updateWindNew(mWindVelocitiesCL.image(),
-                                               mCurForce->image(),
-                                               gridSize, dt, density, viscosity,
-                                               mPressure.image(),
-                                               mTemp1.image(),
-                                               mTemp2.image()),
+    ERROR_IF_FALSE(mFluidSimulation->update(dt, *mCurForce),
                    "Failed to update wind.");
-
-    ERROR_IF_FALSE(mWindVelocitiesCL.release(mCLWrapper->queue()), "Failed to release a CL image.");
 }
 
 void MainWindow::updateGrassWindOffsets()
@@ -402,7 +387,7 @@ void MainWindow::updateGrassWindOffsets()
     ERROR_IF_FALSE(mWindProgram->reactToWind2(mGrassWindPositions,
                                               mGrassPeriodOffsets,
                                               mGrassNormalizedPositions,
-                                              mWindVelocitiesCL.image(),
+                                              mFluidSimulation->velocities().image(),
                                               mNumBlades,
                                               time),
                    "Failed to run wind program");
@@ -607,6 +592,8 @@ void MainWindow::createCLBuffersFromGLBuffers()
 
 void MainWindow::createWindData()
 {
+
+
     /* Create an empty OpenGL texture with 4 floats per pixel. This
         will be used to store wind velocities. It appears that the
         texture is automatically 0-initialized, but I do not know if
@@ -620,14 +607,14 @@ void MainWindow::createWindData()
     mWindVelocities->setSize(128, 128);
     mWindVelocities->allocateStorage();
 
+    Fluid2DSimulationConfig config(mWindVelocities->width(), mWindVelocities->height(), mWindProgram, 3, 0.03f);
+    mFluidSimulation = new Fluid2DSimulation(config);
+    ERROR_IF_FALSE(mFluidSimulation->create(mCLWrapper, mWindVelocities), "Couldn't crate fluid simulation.");
+
     /* Create the CL images. Once again, I am not sure if 0-initialization
         is guaranteed. */
-    ERROR_IF_FALSE(mWindVelocitiesCL.createShared(mCLWrapper->context(), *mWindVelocities), "Failed to create a CL image.");
     ERROR_IF_FALSE(mForces1.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height(), CL_RG), "Failed to create a CL image.");
     ERROR_IF_FALSE(mForces2.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height(), CL_RG), "Failed to create a CL image.");
-    ERROR_IF_FALSE(mPressure.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height(), CL_R), "Failed to create a CL image.");
-    ERROR_IF_FALSE(mTemp1.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height(), CL_RG), "Failed to create a CL image.");
-    ERROR_IF_FALSE(mTemp2.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height(), CL_RG), "Failed to create a CL image.");
 
     /* Initialize forces. */
     mForces1.acquire(mCLWrapper->queue());
