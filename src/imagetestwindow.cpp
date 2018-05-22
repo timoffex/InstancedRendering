@@ -86,7 +86,7 @@ void ImageTestWindow::doUpdate()
 //    ++times;
 
     // TEST: Full wind procedure.
-    mWindCLProgram.updateWindNew(mWindSpeeds.image(), mForces.image(), h, dt, density, visc, mPressure.image(), mTemp1.image(), mTemp2.image());
+//    mWindCLProgram.updateWindNew(mWindSpeeds.image(), mForces.image(), h, dt, density, visc, mPressure.image(), mTemp1.image(), mTemp2.image());
 
 
     mTemp2.release(mCLWrapper.queue());
