@@ -4,7 +4,6 @@ Fluid2DSimulation::Fluid2DSimulation(Fluid2DSimulationConfig config)
     : mInitialized(false),
       mConfig(config)
 {
-    mFluidProgram = mConfig.windProgTemp;
 }
 
 Fluid2DSimulation::~Fluid2DSimulation()
@@ -17,8 +16,8 @@ bool Fluid2DSimulation::create(MyCLWrapper *wrapper,
                                const QOpenGLTexture *pressureTexture)
 {
 
-    // TODO: Create and initialize a program.
-
+    if (!mFluidProgram.create(wrapper))
+        return false;
 
     if (!createImages(wrapper, velocityTexture, pressureTexture))
         return false;
@@ -43,8 +42,27 @@ void Fluid2DSimulation::release()
 
 bool Fluid2DSimulation::update(float dtSeconds)
 {
-    qFatal("Unimplemented method Fluid2DSimulation::update(float)");
-    Q_UNREACHABLE();
+    if (!mVelocities.acquire(mCLWrapper->queue())) return false;
+    if (!mPressure.acquire(mCLWrapper->queue())) return false;
+
+    if (!mFluidProgram.update(mVelocities,
+                              NULL,
+                              mPressure,
+                              mTemp2F_1,
+                              mTemp2F_2,
+                              mConfig.gridSquareSize,
+                              dtSeconds,
+                              mConfig.density,
+                              mConfig.hasViscosity ? mConfig.viscosity : -1))
+    {
+        qDebug() << "Failed in wind update.";
+        return false;
+    }
+
+    if (!mPressure.release(mCLWrapper->queue())) return false;
+    if (!mVelocities.release(mCLWrapper->queue())) return false;
+
+    return true;
 }
 
 bool Fluid2DSimulation::update(float dtSeconds, MyCLImage2D &forces)
@@ -52,15 +70,15 @@ bool Fluid2DSimulation::update(float dtSeconds, MyCLImage2D &forces)
     if (!mVelocities.acquire(mCLWrapper->queue())) return false;
     if (!mPressure.acquire(mCLWrapper->queue())) return false;
 
-    if (!mFluidProgram->updateWindNew(mVelocities.image(),
-                                        forces.image(),
-                                        mConfig.gridSquareSize,
-                                        dtSeconds,
-                                        mConfig.density,
-                                        mConfig.hasViscosity ? mConfig.viscosity : -1,
-                                        mPressure.image(),
-                                        mTemp2F_1.image(),
-                                        mTemp2F_2.image()))
+    if (!mFluidProgram.update(mVelocities,
+                              &forces,
+                              mPressure,
+                              mTemp2F_1,
+                              mTemp2F_2,
+                              mConfig.gridSquareSize,
+                              dtSeconds,
+                              mConfig.density,
+                              mConfig.hasViscosity ? mConfig.viscosity : -1))
     {
         qDebug() << "Failed in wind update.";
         return false;

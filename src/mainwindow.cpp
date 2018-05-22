@@ -606,7 +606,7 @@ void MainWindow::createWindSimulation()
     mWindVelocities->allocateStorage();
 
     /* Create the fluid simulation object. */
-    Fluid2DSimulationConfig config(mWindVelocities->width(), mWindVelocities->height(), mWindProgram, 3, 0.03f);
+    Fluid2DSimulationConfig config(mWindVelocities->width(), mWindVelocities->height(), 3, 0.03f);
     mWindSimulation = new Fluid2DSimulation(config);
     ERROR_IF_FALSE(mWindSimulation->create(mCLWrapper, mWindVelocities), "Couldn't crate fluid simulation.");
 

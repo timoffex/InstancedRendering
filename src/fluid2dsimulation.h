@@ -1,7 +1,7 @@
 #ifndef FLUID2DSIMULATION_H
 #define FLUID2DSIMULATION_H
 
-#include "grasswindclprogram.h"
+#include "fluid2dsimulationclprogram.h"
 
 #include "cl_interface/myclwrapper.h"
 #include "cl_interface/myclimage.h"
@@ -13,10 +13,9 @@
 struct Fluid2DSimulationConfig
 {
     /// Creates an inviscid (viscosity = 0) fluid with default density and grid coarseness.
-    Fluid2DSimulationConfig(size_t width, size_t height, GrassWindCLProgram *prog, float dens = 1, float gridSquare = 0.1f)
+    Fluid2DSimulationConfig(size_t width, size_t height, float dens = 1, float gridSquare = 0.1f)
         : width(width),
           height(height),
-          windProgTemp(prog),
           hasViscosity(false),
           viscosity(0),
           density(dens),
@@ -45,9 +44,6 @@ struct Fluid2DSimulationConfig
 
     /// The height of the grid in grid-squares.
     size_t height;
-
-    /// A temporary program parameter. TODO replace
-    GrassWindCLProgram *windProgTemp;
 
     /// Whether this fluid has viscosity.
     bool hasViscosity;
@@ -101,8 +97,7 @@ private:
     MyCLWrapper *mCLWrapper;
 
     Fluid2DSimulationConfig mConfig;
-
-    GrassWindCLProgram *mFluidProgram;
+    Fluid2DSimulationCLProgram mFluidProgram;
 
     MyCLImage2D mVelocities;
     MyCLImage2D mPressure;
