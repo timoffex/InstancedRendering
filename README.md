@@ -5,6 +5,9 @@ The program is written in C++/Qt. OpenGL and OpenCL are both used, but some of t
 1) The `cl_interface/include_opencl.h` header does a platform-specific OpenCL include. For Apple, this is `<OpenCL/opencl.h>`, and for other systems it might be different. By default, if `__APPLE__` isn't defined, I include `<cl.h>`.
 2) Change `makeCLGLContext()` in `MyCLWrapper`.
 
+## Controls
+Press F to toggle the force. The quad in the upper-right corner displays the wind velocities. The grass reacts to the wind.
+
 ## Features
 - 128x128 grass blades are drawn with a `glDrawArraysInstanced()` call.
 - OpenCL code approximates the Navier-Stokes equations for an incompressible fluid.
