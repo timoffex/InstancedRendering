@@ -29,7 +29,7 @@ public:
                       cl_uint numBlades,
                       cl_float time);
 
-public:
+private:
 
     bool mCreated;
 

@@ -125,7 +125,7 @@ void MainWindow::paintGL()
     mCurrentFrameStartTime = QTime::currentTime();
 
     updateWind();
-    updateGrassWindOffsets();
+//    updateGrassWindOffsets();
 
     ERROR_IF_NOT_SUCCESS(clFinish(mCLWrapper->queue()), "Failed to finish OpenCL commands in paintGL().");
 
@@ -368,8 +368,10 @@ void MainWindow::updateWind()
         to tweak the wind update program. */
     float dt = mLastFrameStartTime.msecsTo(mCurrentFrameStartTime) / 1000.0;
 
-    ERROR_IF_FALSE(mWindSimulation->update(dt, *mCurForce),
-                   "Failed to update wind.");
+//    bool success = mWindSimulation->update(dt, *mCurForce);
+    bool success = mWindSimulation->update(0, *mCurForce);
+
+    ERROR_IF_FALSE(success, "Failed to update wind.");
 }
 
 void MainWindow::updateGrassWindOffsets()
