@@ -141,6 +141,23 @@ bool Fluid2DSimulation::createImages(MyCLWrapper *wrapper,
         F2DS_CREATE_IMAGE_1F(mPressure);
     }
 
+
+
+    // TODO: Zeroing the texture for debug purposes. Remove later.
+    mVelocities.map(wrapper->queue());
+    for (size_t x = 0; x < mVelocities.width(); ++x)
+        for (size_t y = 0; y < mVelocities.height(); ++y)
+            mVelocities.setf(x, y, 0);
+    mVelocities.unmap(wrapper->queue());
+
+    // TODO: Zeroing the texture for debug purposes. Remove later.
+    mPressure.map(wrapper->queue());
+    for (size_t x = 0; x < mPressure.width(); ++x)
+        for (size_t y = 0; y < mPressure.height(); ++y)
+            mPressure.setf(x, y, 0);
+    mPressure.unmap(wrapper->queue());
+
+
     F2DS_CREATE_IMAGE_2F(mTemp2F_1);
     F2DS_CREATE_IMAGE_2F(mTemp2F_2);
 

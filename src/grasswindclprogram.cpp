@@ -114,8 +114,8 @@ static cl_int run2DKernel(cl_command_queue queue, cl_device_id device, cl_kernel
 
 
 GrassWindCLProgram::GrassWindCLProgram()
+    : mCreated(false)
 {
-    mCreated = false;
 }
 
 bool GrassWindCLProgram::create(MyCLWrapper *wrapper)
