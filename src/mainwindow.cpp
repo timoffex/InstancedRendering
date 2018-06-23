@@ -125,7 +125,7 @@ void MainWindow::paintGL()
     mCurrentFrameStartTime = QTime::currentTime();
 
     updateWind();
-//    updateGrassWindOffsets();
+    updateGrassWindOffsets();
 
     ERROR_IF_NOT_SUCCESS(clFinish(mCLWrapper->queue()), "Failed to finish OpenCL commands in paintGL().");
 
@@ -364,12 +364,9 @@ void MainWindow::drawWindQuad()
 
 void MainWindow::updateWind()
 {
-    /* TODO These parameters might not work as you'd expect. I will need
-        to tweak the wind update program. */
     float dt = mLastFrameStartTime.msecsTo(mCurrentFrameStartTime) / 1000.0;
 
-//    bool success = mWindSimulation->update(dt, *mCurForce);
-    bool success = mWindSimulation->update(0, *mCurForce);
+    bool success = mWindSimulation->update(dt, *mCurForce);
 
     ERROR_IF_FALSE(success, "Failed to update wind.");
 }
@@ -607,7 +604,8 @@ void MainWindow::createWindSimulation()
     mWindVelocities->setSize(128, 128);
     mWindVelocities->allocateStorage();
 
-    /* Create the fluid simulation object. */
+    /* Create the fluid simulation object.
+        Parameters: width, height, density, side-length of a single grid square */
     Fluid2DSimulationConfig config(mWindVelocities->width(), mWindVelocities->height(), 3, 0.03f);
     mWindSimulation = new Fluid2DSimulation(config);
     ERROR_IF_FALSE(mWindSimulation->create(mCLWrapper, mWindVelocities), "Couldn't crate fluid simulation.");
@@ -621,16 +619,16 @@ void MainWindow::createWindSimulation()
     mForces1.acquire(mCLWrapper->queue());
     mForces1.map(mCLWrapper->queue());
     for (int x = 55; x < 73; ++x)
-        mForces1.setf(x, 5, 24, 48, 0, 0);
+        mForces1.setf(x, 5, 0, 30, 0, 0);
     mForces1.unmap(mCLWrapper->queue());
     mForces1.release(mCLWrapper->queue());
 
-//    mForces2.acquire(mCLWrapper->queue());
-//    mForces2.map(mCLWrapper->queue());
-//    for (int y = 20; y < 30; ++y)
-//        mForces2.setf(30, y, -10, 0, 0, 0);
-//    mForces2.unmap(mCLWrapper->queue());
-//    mForces2.releaseQueue(mCLWrapper->queue());
+    mForces2.acquire(mCLWrapper->queue());
+    mForces2.map(mCLWrapper->queue());
+    for (int y = 20; y < 30; ++y)
+        mForces2.setf(30, y, 0, 0, 0, 0);
+    mForces2.unmap(mCLWrapper->queue());
+    mForces2.release(mCLWrapper->queue());
 
     mCurForce = &mForces2;
     mNextForce = &mForces1;
