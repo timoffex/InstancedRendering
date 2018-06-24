@@ -5,10 +5,14 @@
 
 #include "cl_interface/include_opencl.h"
 
+#include "cl_interface/myclprogram.h"
+#include "cl_interface/myclkernel.h"
+
 class GrassWindCLProgram
 {
 public:
     GrassWindCLProgram();
+    ~GrassWindCLProgram();
 
     /// Creates the program and its kernels. This program will
     /// use the given MyCLWrapper object but will not own it.
@@ -31,12 +35,20 @@ public:
 
 private:
 
+    using GrassReactKernelType = MyCLKernel<cl_mem,
+                                            cl_mem,
+                                            cl_mem,
+                                            cl_image,
+                                            cl_uint,
+                                            cl_float>;
+
+
     bool mCreated;
 
     MyCLWrapper *mCLWrapper;
 
-    cl_program mProgram;
-    cl_kernel mGrassReact2Kernel;
+    MyCLProgram mProgram;
+    GrassReactKernelType mGrassReact2Kernel;
 };
 
 #endif // GRASSWINDCLPROGRAM_H

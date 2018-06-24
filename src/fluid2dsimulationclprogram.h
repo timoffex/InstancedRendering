@@ -4,6 +4,8 @@
 #include "cl_interface/include_opencl.h"
 #include "cl_interface/myclwrapper.h"
 #include "cl_interface/myclimage.h"
+#include "cl_interface/myclprogram.h"
+#include "cl_interface/myclkernel.h"
 
 class Fluid2DSimulationCLProgram
 {
@@ -65,14 +67,14 @@ private:
 
     MyCLWrapper *mCLWrapper;
 
-    cl_program mProgram;
-    cl_kernel mJacobiKernel;
-    cl_kernel mAdvectKernel;
-    cl_kernel mDivergenceKernel;
-    cl_kernel mGradientKernel;
-    cl_kernel mAddScaledKernel;
-    cl_kernel mVelocityBoundaryKernel;
-    cl_kernel mPressureBoundaryKernel;
+    MyCLProgram mProgram;
+    MyCLKernel<MyCLImage2D&, MyCLImage2D&, MyCLImage2D&, cl_float, cl_float> mJacobiKernel;
+    MyCLKernel<MyCLImage2D&, MyCLImage2D&, MyCLImage2D&, cl_float> mAdvectKernel;
+    MyCLKernel<MyCLImage2D&, MyCLImage2D&, cl_float> mDivergenceKernel;
+    MyCLKernel<MyCLImage2D&, MyCLImage2D&, cl_float> mGradientKernel;
+    MyCLKernel<MyCLImage2D&, MyCLImage2D&, cl_float, MyCLImage2D&> mAddScaledKernel;
+    MyCLKernel<MyCLImage2D&, MyCLImage2D&> mVelocityBoundaryKernel;
+    MyCLKernel<MyCLImage2D&, MyCLImage2D&> mPressureBoundaryKernel;
 };
 
 #endif // FLUID2DSIMULATIONCLPROGRAM_H

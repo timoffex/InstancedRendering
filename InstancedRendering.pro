@@ -46,7 +46,8 @@ SOURCES += \
     src/fluid2dsimulation.cpp \
     src/cl_interface/myclimage.cpp \
     src/fluid2dsimulationclprogram.cpp \
-    src/utilitiesclprogram.cpp
+    src/utilitiesclprogram.cpp \
+    src/cl_interface/myclprogram.cpp
 
 HEADERS += \
     src/grass.h \
@@ -63,7 +64,9 @@ HEADERS += \
     src/fluid2dsimulation.h \
     src/cl_interface/myclimage.h \
     src/fluid2dsimulationclprogram.h \
-    src/utilitiesclprogram.h
+    src/utilitiesclprogram.h \
+    src/cl_interface/myclprogram.h \
+    src/cl_interface/myclkernel.h
 
 DISTFILES += \
     src/grass_blade.jpg \
