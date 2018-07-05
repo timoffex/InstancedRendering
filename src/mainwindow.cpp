@@ -2,6 +2,8 @@
 
 #include "grass.h"
 
+#include "cl_interface/clniceties.h"
+
 // For rand()
 #include <cstdlib>
 
@@ -596,9 +598,9 @@ void MainWindow::createCLBuffersFromGLBuffers()
 void MainWindow::createWindSimulation()
 {
     /* Create an empty OpenGL texture with 4 floats per pixel. This
-        will be used to store wind velocities. It appears that the
-        texture is automatically 0-initialized, but I do not know if
-        this is guaranteed. */
+        will be used to store wind velocities. This is not guaranteed
+        to be zero-initialized, but the Fluid2DSimulation object will
+        zero-initialize it. */
     mWindVelocities = new QOpenGLTexture(QOpenGLTexture::Target2D);
     ERROR_IF_FALSE(mWindVelocities->create(), "Couldn't create wind texture.");
     mWindVelocities->setFormat(QOpenGLTexture::RGBA32F);
@@ -614,8 +616,7 @@ void MainWindow::createWindSimulation()
     mWindSimulation = new Fluid2DSimulation(config);
     ERROR_IF_FALSE(mWindSimulation->create(mCLWrapper, mWindVelocities), "Couldn't crate fluid simulation.");
 
-    /* Create the CL images. Once again, I am not sure if 0-initialization
-        is guaranteed. */
+    /* Create the forces. Note that they are not guaranteed to be zero-initialized. */
     ERROR_IF_FALSE(mForces1.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height(), CL_RG), "Failed to create a CL image.");
     ERROR_IF_FALSE(mForces2.create(mCLWrapper->context(), mWindVelocities->width(), mWindVelocities->height(), CL_RG), "Failed to create a CL image.");
 

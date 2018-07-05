@@ -122,10 +122,14 @@ bool Fluid2DSimulation::createImages(MyCLWrapper *wrapper,
             qDebug() << "Failed to instantiate mVelocities from velocity texture.";
             return false;
         }
+
+        if (mConfig.zeroInitializeSharedTextures)
+            CLNiceties::ZeroImage(wrapper->queue(), mVelocities);
     }
     else
     {
         F2DS_CREATE_IMAGE_2F(mVelocities);
+        CLNiceties::ZeroImage(wrapper->queue(), mVelocities);
     }
 
 
@@ -136,20 +140,25 @@ bool Fluid2DSimulation::createImages(MyCLWrapper *wrapper,
             qDebug() << "Failed to instantiate mPressure from pressure texture.";
             return false;
         }
+
+        if (mConfig.zeroInitializeSharedTextures)
+            CLNiceties::ZeroImage(wrapper->queue(), mPressure);
     }
     else
     {
         F2DS_CREATE_IMAGE_1F(mPressure);
+        CLNiceties::ZeroImage(wrapper->queue(), mPressure);
     }
 
 
 
-    CLNiceties::ZeroImage(wrapper->queue(), mVelocities);
-    CLNiceties::ZeroImage(wrapper->queue(), mPressure);
 
 
     F2DS_CREATE_IMAGE_2F(mTemp2F_1);
     F2DS_CREATE_IMAGE_2F(mTemp2F_2);
+
+    CLNiceties::ZeroImage(wrapper->queue(), mTemp2F_1);
+    CLNiceties::ZeroImage(wrapper->queue(), mTemp2F_2);
 
 #undef F2DS_CREATE_IMAGE
 

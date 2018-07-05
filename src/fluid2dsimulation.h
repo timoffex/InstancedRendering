@@ -19,7 +19,8 @@ struct Fluid2DSimulationConfig
           hasViscosity(false),
           viscosity(0),
           density(dens),
-          gridSquareSize(gridSquare)
+          gridSquareSize(gridSquare),
+          zeroInitializeSharedTextures(true)
     {
     }
 
@@ -53,6 +54,9 @@ struct Fluid2DSimulationConfig
 
     /// The side-length of a single square in the grid.
     float gridSquareSize;
+
+    /// Whether to zero-initialize the given OpenGL textures.
+    bool zeroInitializeSharedTextures;
 };
 
 class Fluid2DSimulation
