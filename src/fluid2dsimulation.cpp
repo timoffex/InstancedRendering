@@ -1,4 +1,5 @@
 #include "fluid2dsimulation.h"
+#include "cl_interface/clniceties.h"
 
 Fluid2DSimulation::Fluid2DSimulation(Fluid2DSimulationConfig config)
     : mInitialized(false),
@@ -143,19 +144,8 @@ bool Fluid2DSimulation::createImages(MyCLWrapper *wrapper,
 
 
 
-    // TODO: Zeroing the texture for debug purposes. Remove later.
-    mVelocities.map(wrapper->queue());
-    for (size_t x = 0; x < mVelocities.width(); ++x)
-        for (size_t y = 0; y < mVelocities.height(); ++y)
-            mVelocities.setf(x, y, 0);
-    mVelocities.unmap(wrapper->queue());
-
-    // TODO: Zeroing the texture for debug purposes. Remove later.
-    mPressure.map(wrapper->queue());
-    for (size_t x = 0; x < mPressure.width(); ++x)
-        for (size_t y = 0; y < mPressure.height(); ++y)
-            mPressure.setf(x, y, 0);
-    mPressure.unmap(wrapper->queue());
+    CLNiceties::ZeroImage(wrapper->queue(), mVelocities);
+    CLNiceties::ZeroImage(wrapper->queue(), mPressure);
 
 
     F2DS_CREATE_IMAGE_2F(mTemp2F_1);

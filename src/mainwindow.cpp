@@ -69,6 +69,10 @@ void MainWindow::initializeGL()
     ERROR_IF_FALSE(mCLWrapper->createFromGLContext(), "Failed to initialize OpenCL.");
 
 
+    /* Set this as the current global CL wrapper so that CLNiceties
+        functions can be used without passing a MyCLWrapper argument. */
+    mCLWrapper->makeCurrent();
+
     /* Create the OpenGL shader program for rendering grass. */
     ERROR_IF_FALSE(mGrassProgram.create(), "Failed to create grass program.");
 

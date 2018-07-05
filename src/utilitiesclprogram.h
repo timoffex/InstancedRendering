@@ -16,7 +16,7 @@ public:
 
     void destroy();
 
-    bool zeroInitialize(MyCLImage2D &img);
+    bool zeroImage(MyCLImage2D &img);
 
 private:
     bool mCreated;
@@ -24,7 +24,7 @@ private:
     MyCLWrapper *mCLWrapper;
 
     MyCLProgram mProgram;
-    MyCLKernel<MyCLImage2D &> mZeroInitializeKernel;
+    MyCLKernel<cl_image, cl_int, cl_int> mZeroInitializeKernel;
 };
 
 #endif // UTILITIESCLPROGRAM_H

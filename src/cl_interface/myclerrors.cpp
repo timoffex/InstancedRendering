@@ -43,10 +43,10 @@ std::string parseCreateFromGLTextureError(cl_int err)
     }
 }
 
-std::string parseAcquireError(cl_int err) { return "TODO"; }
-std::string parseReleaseError(cl_int err) { return "TODO"; }
-std::string parseMapImageError(cl_int err) { return "TODO"; }
-std::string parseUnmapObjectError(cl_int err) { return "TODO"; }
+std::string parseAcquireError(cl_int err) { return "TODO: Parse acquire error."; }
+std::string parseReleaseError(cl_int err) { return "TODO: Parse release error."; }
+std::string parseMapImageError(cl_int err) { return "TODO: Parse map image error."; }
+std::string parseUnmapObjectError(cl_int err) { return "TODO: Parse unmap object error."; }
 
 
 std::string parseBuildReturnCode(cl_int err)

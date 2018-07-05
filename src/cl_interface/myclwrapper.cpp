@@ -3,6 +3,24 @@
 #include <QDebug>
 #include <QOpenGLContext>
 
+MyCLWrapper *MyCLWrapper::currentGlobalContext = nullptr;
+
+MyCLWrapper &MyCLWrapper::current()
+{
+    Q_ASSERT(isCurrentSet());
+    return *currentGlobalContext;
+}
+
+bool MyCLWrapper::isCurrentSet()
+{
+    return currentGlobalContext != nullptr;
+}
+
+void MyCLWrapper::makeCurrent()
+{
+    currentGlobalContext = this;
+}
+
 MyCLWrapper::MyCLWrapper()
     : mCreated(false)
 {

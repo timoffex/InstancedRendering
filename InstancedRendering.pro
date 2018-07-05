@@ -30,15 +30,16 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
+# Turn off warnings about C++17 extensions because MyCLKernel will generate a LOT of them.
+QMAKE_CXXFLAGS += -Wno-c++17-extensions
+
 
 SOURCES += \
     src/grass.cpp \
     src/grassglprogram.cpp \
     src/grasswindclprogram.cpp \
-    src/imagetestwindow.cpp \
     src/main.cpp \
     src/mainwindow.cpp \
-    src/cl_interface/myclimage_rgba32f.cpp \
     src/cl_interface/myclimagedescriptor.cpp \
     src/cl_interface/myclwrapper.cpp \
     src/windquadglprogram.cpp \
@@ -47,15 +48,14 @@ SOURCES += \
     src/cl_interface/myclimage.cpp \
     src/fluid2dsimulationclprogram.cpp \
     src/utilitiesclprogram.cpp \
-    src/cl_interface/myclprogram.cpp
+    src/cl_interface/myclprogram.cpp \
+    src/cl_interface/clniceties.cpp
 
 HEADERS += \
     src/grass.h \
     src/grassglprogram.h \
     src/grasswindclprogram.h \
-    src/imagetestwindow.h \
     src/mainwindow.h \
-    src/cl_interface/myclimage_rgba32f.h \
     src/cl_interface/myclimagedescriptor.h \
     src/cl_interface/myclwrapper.h \
     src/windquadglprogram.h \
@@ -66,7 +66,8 @@ HEADERS += \
     src/fluid2dsimulationclprogram.h \
     src/utilitiesclprogram.h \
     src/cl_interface/myclprogram.h \
-    src/cl_interface/myclkernel.h
+    src/cl_interface/myclkernel.h \
+    src/cl_interface/clniceties.h
 
 DISTFILES += \
     src/grass_blade.jpg \

@@ -32,6 +32,9 @@ public:
     cl_image_format format() const;
 
 
+    /// Returns true if this image has been acquired with acquire().
+    bool isAcquired() const;
+
     /// Acquires the image if sharing with a GL texture. Otherwise,
     /// does nothing.
     bool acquire(cl_command_queue queue);
@@ -40,6 +43,9 @@ public:
     /// does nothing.
     bool release(cl_command_queue queue);
 
+
+    /// Returns true if the image has been mapped with map().
+    bool isMapped() const;
 
     /// Maps the entire image.
     bool map(cl_command_queue queue);

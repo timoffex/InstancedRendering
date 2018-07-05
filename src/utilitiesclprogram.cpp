@@ -47,7 +47,7 @@ void UtilitiesCLProgram::destroy()
 }
 
 
-bool UtilitiesCLProgram::zeroInitialize(MyCLImage2D &img)
+bool UtilitiesCLProgram::zeroImage(MyCLImage2D &img)
 {
-    return mZeroInitializeKernel(img.width(), img.height(), img);
+    return mZeroInitializeKernel(img.width(), img.height(), img.image(), img.width(), img.height());
 }

@@ -14,6 +14,9 @@
 /// A wrapper for an OpenCL kernel. The template arguments are the types
 /// of the kernel arguments, which may be any valid cl_* type or MyCLImage2D &.
 /// It is very important that MyCLImage2D is passed by reference!
+///
+/// The MyCLImage2D thing will be removed and MyCLImage2D will become
+/// implicitly convertible to cl_image.
 template< typename FirstType, typename ... OtherTypes >
 class MyCLKernel
 {
@@ -120,6 +123,40 @@ public:
         if (err != CL_SUCCESS)
         {
             qDebug() << QString::fromStdString(parseEnqueueKernelReturnCode(err));
+
+            if (err == CL_INVALID_WORK_GROUP_SIZE)
+            {
+                /*
+                 * On some devices, 2D work group sizes are not possible because the maximum size
+                 * of a work group in the second dimension is 1. The below code prints out some
+                 * helpful information that will hopefully help you figure out what went wrong.
+                 *
+                 * I got this error when I used CL_DEVICE_TYPE_CPU.
+                 * */
+
+                size_t maxWorkGroupSize;
+                size_t maxWorkItemDimensions = 0;
+                clGetDeviceInfo(mCLWrapper->device(), CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &maxWorkGroupSize, NULL);
+                clGetDeviceInfo(mCLWrapper->device(), CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(size_t), &maxWorkItemDimensions, NULL);
+
+                size_t maxWorkItemSizes[maxWorkItemDimensions];
+                std::fill(maxWorkItemSizes, maxWorkItemSizes + maxWorkItemDimensions, 0);
+
+                clGetDeviceInfo(mCLWrapper->device(), CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(size_t) * maxWorkItemDimensions, maxWorkItemSizes, NULL);
+
+
+
+                qDebug() << "The failure happened in clEnqueueNDRangeKernel().";
+                qDebug() << "The maximum work group size for this device is " << maxWorkGroupSize;
+                qDebug() << "The ideal work group size is " << idealWorkGroupSize;
+                qDebug() << "The work group size used is " << locals[0] << " x " << locals[1] << " = " << locals[0] * locals[1];
+
+
+                qDebug() << "The maximum number of work item dimensions is " << maxWorkItemDimensions << ". The max work group sizes are...";
+                for (size_t i = 0; i < maxWorkItemDimensions; ++i)
+                    qDebug() << "   dimension " << i << ": " << maxWorkItemSizes[i];
+            }
+
             return false;
         }
 

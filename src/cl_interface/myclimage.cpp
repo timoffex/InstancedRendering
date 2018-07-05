@@ -119,6 +119,11 @@ cl_image_format MyCLImage2D::format() const
     return mFormat;
 }
 
+bool MyCLImage2D::isAcquired() const
+{
+    return mAcquired;
+}
+
 bool MyCLImage2D::acquire(cl_command_queue queue)
 {
     Q_ASSERT( mCreated );
@@ -161,6 +166,11 @@ bool MyCLImage2D::release(cl_command_queue queue)
     }
 
     return true;
+}
+
+bool MyCLImage2D::isMapped() const
+{
+    return mIsMapped;
 }
 
 bool MyCLImage2D::map(cl_command_queue queue)
